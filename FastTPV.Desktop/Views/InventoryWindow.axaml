@@ -51,7 +51,7 @@
 
                         <TextBlock Text="Category"/>
                         <AutoCompleteBox Text="{Binding EditCategory}" ItemsSource="{Binding CategoryOptions}"
-                                          FilterMode="ContainsOrdinalCaseInsensitive" Padding="8"
+                                          FilterMode="ContainsOrdinal" Padding="8"
                                           Watermark="Start typing an existing category, or a new one"/>
 
                         <Grid ColumnDefinitions="*,*" Margin="0,4,0,0">
