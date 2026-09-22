@@ -14,7 +14,10 @@
         <TextBox x:Name="Code" Watermark="Code *"/>
         <TextBox x:Name="Name" Watermark="Name *"/>
         <TextBox x:Name="ContactName" Watermark="Contact name"/>
-        <Grid ColumnDefinitions="*,*" ColumnSpacing="10"><TextBox x:Name="Email" Watermark="Email"/><TextBox x:Name="Phone" Grid.Column="1" Watermark="Phone"/></Grid>
+        <Grid ColumnDefinitions="*,*">
+          <TextBox x:Name="Email" Watermark="Email" Margin="0,0,5,0"/>
+          <TextBox x:Name="Phone" Grid.Column="1" Watermark="Phone" Margin="5,0,0,0"/>
+        </Grid>
         <TextBox x:Name="TaxId" Watermark="Tax ID"/>
         <TextBox x:Name="Address" Watermark="Address"/>
         <CheckBox x:Name="IsActive" Content="Active" IsChecked="True"/>
