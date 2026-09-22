@@ -26,11 +26,11 @@
         <TextBlock x:Name="KickMessage" FontSize="12" Foreground="#64748B" TextWrapping="Wrap"/>
 
         <TextBlock Text="Cash in / out" FontSize="16" FontWeight="Bold"/>
-        <Grid ColumnDefinitions="*,*,Auto,Auto" ColumnSpacing="8">
-          <TextBox x:Name="MovementAmount" Watermark="Amount"/>
-          <TextBox x:Name="MovementReason" Grid.Column="1" Watermark="Reason (e.g. banking drop, paid-out)"/>
-          <Button Grid.Column="2" Content="Cash In" Click="CashIn" Padding="12,6" Background="#16A34A" Foreground="White"/>
-          <Button Grid.Column="3" Content="Cash Out" Click="CashOut" Padding="12,6" Background="#DC2626" Foreground="White"/>
+        <Grid ColumnDefinitions="*,*,Auto,Auto">
+          <TextBox x:Name="MovementAmount" Watermark="Amount" Margin="0,0,4,0"/>
+          <TextBox x:Name="MovementReason" Grid.Column="1" Watermark="Reason (e.g. banking drop, paid-out)" Margin="4,0,4,0"/>
+          <Button Grid.Column="2" Content="Cash In" Click="CashIn" Padding="12,6" Background="#16A34A" Foreground="White" Margin="4,0,4,0"/>
+          <Button Grid.Column="3" Content="Cash Out" Click="CashOut" Padding="12,6" Background="#DC2626" Foreground="White" Margin="4,0,0,0"/>
         </Grid>
         <TextBlock x:Name="MovementMessage" Foreground="#B91C1C" TextWrapping="Wrap"/>
 
