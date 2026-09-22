@@ -13,10 +13,20 @@
         <TextBlock Text="Customer details" FontSize="20" FontWeight="Bold"/>
         <TextBox x:Name="Code" Watermark="Code" IsReadOnly="True"/>
         <TextBox x:Name="Name" Watermark="Name *"/>
-        <Grid ColumnDefinitions="*,*" ColumnSpacing="10"><TextBox x:Name="Email" Watermark="Email"/><TextBox x:Name="Phone" Grid.Column="1" Watermark="Phone"/></Grid>
-        <TextBox x:Name="Address" Watermark="Address"/><Grid ColumnDefinitions="*,*" ColumnSpacing="10"><TextBox x:Name="City" Watermark="City"/><TextBox x:Name="ZipCode" Grid.Column="1" Watermark="ZIP code"/></Grid>
+        <Grid ColumnDefinitions="*,*">
+          <TextBox x:Name="Email" Watermark="Email" Margin="0,0,5,0"/>
+          <TextBox x:Name="Phone" Grid.Column="1" Watermark="Phone" Margin="5,0,0,0"/>
+        </Grid>
+        <TextBox x:Name="Address" Watermark="Address"/>
+        <Grid ColumnDefinitions="*,*">
+          <TextBox x:Name="City" Watermark="City" Margin="0,0,5,0"/>
+          <TextBox x:Name="ZipCode" Grid.Column="1" Watermark="ZIP code" Margin="5,0,0,0"/>
+        </Grid>
         <TextBox x:Name="TaxId" Watermark="Tax ID"/>
-        <Grid ColumnDefinitions="*,*" ColumnSpacing="10"><TextBox x:Name="CreditLimit" Watermark="Credit limit"/><TextBox x:Name="CurrentDebt" Watermark="Current debt" IsReadOnly="True"/></Grid>
+        <Grid ColumnDefinitions="*,*">
+          <TextBox x:Name="CreditLimit" Watermark="Credit limit" Margin="0,0,5,0"/>
+          <TextBox x:Name="CurrentDebt" Grid.Column="1" Watermark="Current debt" IsReadOnly="True" Margin="5,0,0,0"/>
+        </Grid>
         <CheckBox x:Name="IsActive" Content="Active" IsChecked="True"/>
         <TextBlock x:Name="Message" Foreground="#B91C1C" TextWrapping="Wrap"/>
         <StackPanel Orientation="Horizontal" Spacing="10"><Button Content="Save" Click="Save" Padding="18,8" Background="#16A34A" Foreground="White"/><Button Content="Delete" Click="Delete" Padding="18,8" Background="#DC2626" Foreground="White"/></StackPanel>
