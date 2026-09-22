@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text;
+using FastTPV.Core.Data;
 using FastTPV.Core.Models;
 using Serilog;
 
