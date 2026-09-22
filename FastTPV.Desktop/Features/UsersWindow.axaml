@@ -1,0 +1,38 @@
+<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" x:Class="FastTPV.Desktop.Features.UsersWindow" Width="900" Height="620" Title="Users" WindowStartupLocation="CenterOwner">
+  <Grid RowDefinitions="Auto,*" ColumnDefinitions="2*,3*" Margin="24">
+    <StackPanel Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="12" Margin="0,0,0,18">
+      <TextBlock Text="Users" FontSize="26" FontWeight="Bold" VerticalAlignment="Center"/>
+      <Button Content="New user" Click="NewUser" Padding="16,8" Background="#2563EB" Foreground="White"/>
+    </StackPanel>
+    <ListBox x:Name="UserList" Grid.Row="1" SelectionChanged="UserSelected" Margin="0,0,18,0">
+      <ListBox.ItemTemplate>
+        <DataTemplate>
+          <StackPanel Margin="10,8">
+            <TextBlock Text="{Binding DisplayName}" FontWeight="Bold"/>
+            <TextBlock Text="{Binding UserName}" Foreground="#64748B"/>
+            <TextBlock Text="{Binding Role}" Foreground="#2563EB" FontSize="12"/>
+          </StackPanel>
+        </DataTemplate>
+      </ListBox.ItemTemplate>
+    </ListBox>
+    <Border Grid.Row="1" Grid.Column="1" Padding="22" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1">
+      <StackPanel Spacing="10">
+        <TextBlock Text="User details" FontSize="20" FontWeight="Bold"/>
+        <TextBox x:Name="UserName" Watermark="Username *"/>
+        <TextBox x:Name="DisplayName" Watermark="Display name *"/>
+        <ComboBox x:Name="Role" HorizontalAlignment="Stretch">
+          <ComboBoxItem Content="Cashier"/>
+          <ComboBoxItem Content="Admin"/>
+        </ComboBox>
+        <CheckBox x:Name="IsActive" Content="Active" IsChecked="True"/>
+        <Separator Margin="0,6"/>
+        <TextBox x:Name="NewPassword" Watermark="Password (min 8 chars, upper+lower+digit)" PasswordChar="*"/>
+        <TextBlock Text="For a new user this sets their initial password. For an existing user, filling this in and clicking Save resets it." Foreground="#64748B" FontSize="12" TextWrapping="Wrap"/>
+        <TextBlock x:Name="Message" Foreground="#B91C1C" TextWrapping="Wrap"/>
+        <StackPanel Orientation="Horizontal" Spacing="10">
+          <Button Content="Save" Click="Save" Padding="18,8" Background="#16A34A" Foreground="White"/>
+        </StackPanel>
+      </StackPanel>
+    </Border>
+  </Grid>
+</Window>

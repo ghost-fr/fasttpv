@@ -1,0 +1,75 @@
+using Avalonia.Controls;
+using ReactiveUI;
+using System;
+using System.Reactive;
+using System.Reactive.Disposables;
+using System.Reactive.Linq;
+
+namespace FastTPV.Desktop.ViewModels;
+
+public class MainWindowViewModel : ViewModelBase
+{
+    private readonly Func<Window> _createSalesWindow;
+    private readonly Func<Window> _createInventoryWindow;
+
+    private DateTime _currentDateTime;
+    public DateTime CurrentDateTime
+    {
+        get => _currentDateTime;
+        set => this.RaiseAndSetIfChanged(ref _currentDateTime, value);
+    }
+
+    private string _statusMessage = "Ready";
+    public string StatusMessage
+    {
+        get => _statusMessage;
+        set => this.RaiseAndSetIfChanged(ref _statusMessage, value);
+    }
+
+    public ReactiveCommand<Unit, Unit> OpenSalesCommand { get; }
+    public ReactiveCommand<Unit, Unit> OpenInventoryCommand { get; }
+    public ReactiveCommand<Unit, Unit> ExitCommand { get; }
+
+    /// <summary>
+    /// Designer/parameterless constructor so the XAML previewer doesn't need real services.
+    /// </summary>
+    public MainWindowViewModel() : this(() => new Window(), () => new Window())
+    {
+    }
+
+    public MainWindowViewModel(Func<Window> createSalesWindow, Func<Window> createInventoryWindow)
+    {
+        _createSalesWindow = createSalesWindow;
+        _createInventoryWindow = createInventoryWindow;
+
+        CurrentDateTime = DateTime.Now;
+        Observable.Interval(TimeSpan.FromSeconds(1))
+            .ObserveOn(RxApp.MainThreadScheduler)
+            .Subscribe(_ => CurrentDateTime = DateTime.Now);
+
+        OpenSalesCommand = ReactiveCommand.Create(() =>
+        {
+            StatusMessage = "Opening Sales / POS...";
+            var window = _createSalesWindow();
+            window.Show();
+            StatusMessage = "Ready";
+        });
+
+        OpenInventoryCommand = ReactiveCommand.Create(() =>
+        {
+            StatusMessage = "Opening Inventory...";
+            var window = _createInventoryWindow();
+            window.Show();
+            StatusMessage = "Ready";
+        });
+
+        ExitCommand = ReactiveCommand.Create(() =>
+        {
+            if (Avalonia.Application.Current?.ApplicationLifetime is
+                Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop)
+            {
+                desktop.Shutdown();
+            }
+        });
+    }
+}

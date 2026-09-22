@@ -1,0 +1,25 @@
+using FastTPV.Core.Models;
+using FastTPV.Core.Services;
+
+namespace FastTPV.Desktop.Features;
+
+/// <summary>
+/// Thin read-only facade over ArticleService/SaleService for the Reports screen.
+/// Nothing here is new business logic — it just gives ReportsWindow a single,
+/// narrowly-scoped dependency instead of reaching into the full sale/article services.
+/// </summary>
+public sealed class ReportsService
+{
+    private readonly SaleService _sales;
+    private readonly ArticleService _articles;
+
+    public ReportsService(SaleService sales, ArticleService articles)
+    {
+        _sales = sales;
+        _articles = articles;
+    }
+
+    public Task<List<Sale>> GetSalesAsync(DateTime from, DateTime to) => _sales.GetByDateRangeAsync(from, to);
+
+    public Task<List<Article>> GetLowStockAsync() => _articles.GetLowStockAsync();
+}

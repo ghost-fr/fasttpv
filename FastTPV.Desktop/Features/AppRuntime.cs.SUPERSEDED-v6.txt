@@ -1,0 +1,169 @@
+using FastTPV.Core.Data;
+using FastTPV.Core.Services;
+using MySql.Data.MySqlClient;
+using Serilog;
+using System.Text;
+
+namespace FastTPV.Desktop.Features;
+
+/// <summary>
+/// Composition root / service locator for FastTPV.Desktop. Built once at startup
+/// (see App.axaml.cs) and read from everywhere else — the Features windows
+/// (Login, Customer, Reports, Users, PrinterSettings, CompanySettings, CashDrawer)
+/// and MainWindowViewModel all reach services through this rather than taking them
+/// as constructor parameters, since those windows are opened directly from
+/// XAML-adjacent code-behind rather than through DI.
+/// </summary>
+public static class AppRuntime
+{
+    private static readonly ILogger Logger = Log.ForContext(typeof(AppRuntime));
+
+    public static RuntimeSettings Settings { get; private set; } = new();
+    public static DatabaseContext Database { get; private set; } = null!;
+    public static ArticleService Articles { get; private set; } = null!;
+    public static CustomerService Customers { get; private set; } = null!;
+    public static SaleService Sales { get; private set; } = null!;
+    public static CashSessionService CashDrawer { get; private set; } = null!;
+    public static UserAccountService Accounts { get; private set; } = null!;
+    public static AuditService Audit { get; private set; } = null!;
+    public static ReportsService Reports { get; private set; } = null!;
+    public static ReceiptService Receipts { get; private set; } = null!;
+    public static SessionManager Session { get; private set; } = null!;
+
+    /// <summary>
+    /// Full path to appsettings.json, captured at startup so printer settings
+    /// changed from PrinterSettingsWindow can be written back to the same file
+    /// they were loaded from, without the caller needing to know the path.
+    /// </summary>
+    public static string SettingsPath { get; private set; } = string.Empty;
+
+    /// <summary>
+    /// Completes once the DB connection has been verified and schema/default-admin
+    /// bootstrap has run. LoginWindow awaits this before attempting to authenticate,
+    /// so a slow-to-start MySQL server can't race a very fast click on "Sign in".
+    /// </summary>
+    public static Task Ready { get; private set; } = Task.CompletedTask;
+
+    public static void Initialize(RuntimeSettings settings, string settingsPath = "")
+    {
+        // Windows-1252 (needed for Spanish diacritics/ñ/¿/¡ on ESC/POS receipts)
+        // isn't included by default outside ASCII/UTF-8/Unicode in .NET Core;
+        // registering the provider once here makes Encoding.GetEncoding(1252)
+        // work anywhere in the app, including on non-Windows OSes.
+        Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+
+        Settings = settings;
+        SettingsPath = settingsPath;
+        Database = new DatabaseContext(settings.ConnectionString);
+        Articles = new ArticleService(Database);
+        Customers = new CustomerService(Database);
+        Sales = new SaleService(Database);
+        CashDrawer = new CashSessionService(Database);
+        Accounts = new UserAccountService(Database);
+        Audit = new AuditService(Database);
+        Reports = new ReportsService(Sales, Articles);
+        Receipts = new ReceiptService();
+        Session = new SessionManager(TimeSpan.FromMinutes(Math.Max(1, settings.AutoLogoffMinutes)));
+
+        Ready = BootstrapAsync(settings.AutoMigrate);
+    }
+
+    /// <summary>
+    /// Writes the current printer-related fields on Settings back to appsettings.json,
+    /// preserving every other section/value already in the file (so a customer's
+    /// database credentials, tax rate, etc. are never touched by a printer-settings
+    /// save). Called by PrinterSettingsWindow after the in-memory Settings object is
+    /// updated, so changes take effect immediately without restarting the app, and
+    /// persist across the next restart too. A blank SettingsPath (should not happen
+    /// outside tests, since App.axaml.cs always passes one) is a no-op rather than
+    /// a crash.
+    /// </summary>
+    public static void PersistPrinterSettings()
+    {
+        if (string.IsNullOrWhiteSpace(SettingsPath)) return;
+
+        try
+        {
+            Settings.SavePrinterSettings(SettingsPath);
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Could not save printer settings to {Path}", SettingsPath);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Writes the current company / business-identity fields on Settings back to
+    /// appsettings.json (Company section + Application.Company for compatibility).
+    /// Called by CompanySettingsWindow after the in-memory Settings object is updated.
+    /// </summary>
+    public static void PersistCompanySettings()
+    {
+        if (string.IsNullOrWhiteSpace(SettingsPath)) return;
+
+        try
+        {
+            Settings.SaveCompanySettings(SettingsPath);
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Could not save company settings to {Path}", SettingsPath);
+            throw;
+        }
+    }
+
+    private static async Task BootstrapAsync(bool autoMigrate)
+    {
+        var connected = await Database.TestConnectionAsync();
+        if (!connected)
+        {
+            Logger.Error("Could not connect to the database. Check appsettings.json and that MySQL is running.");
+            return;
+        }
+
+        if (autoMigrate)
+        {
+            await DatabaseInitializer.EnsureSchemaAsync(Database);
+        }
+
+        await EnsureDefaultAdminAsync();
+    }
+
+    /// <summary>
+    /// Seeds a default admin account the first time the Users table is empty, so
+    /// there's a way to log in at all on a brand new database. Logs the generated
+    /// credentials once — change the password immediately after first login via
+    /// MainWindow's "Change password", or reset another user's from UsersWindow.
+    /// </summary>
+    private static async Task EnsureDefaultAdminAsync()
+    {
+        try
+        {
+            var count = await Database.ExecuteScalarAsync("SELECT COUNT(*) FROM Users");
+            if (Convert.ToInt64(count) > 0) return;
+
+            const string defaultPassword = "ChangeMe123!";
+            var (hash, salt) = UserAccountService.HashPassword(defaultPassword);
+
+            await Database.ExecuteNonQueryAsync(
+                "INSERT INTO Users (UserName, DisplayName, PasswordHash, PasswordSalt, Role, IsActive, CreatedAt) " +
+                "VALUES (@UserName, @DisplayName, @Hash, @Salt, @Role, 1, @CreatedAt)",
+                new MySqlParameter("@UserName", "admin"),
+                new MySqlParameter("@DisplayName", "Administrator"),
+                new MySqlParameter("@Hash", hash),
+                new MySqlParameter("@Salt", salt),
+                new MySqlParameter("@Role", Roles.Admin),
+                new MySqlParameter("@CreatedAt", DateTime.UtcNow));
+
+            Logger.Warning(
+                "No users existed — created a default admin account (username: admin, password: {DefaultPassword}). " +
+                "Sign in and change this immediately via Change password in the main window.",
+                defaultPassword);
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Could not verify/seed the default admin account");
+        }
+    }
+}

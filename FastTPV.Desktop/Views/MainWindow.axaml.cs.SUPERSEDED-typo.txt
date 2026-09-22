@@ -1,0 +1,38 @@
+using Avalonia.Controls;
+using Avalonia.Interactivity;
+using Avalonia.Threading;
+using FastTPV.Desktop.Features;
+using FastTPV.Desktop.ViewModels;
+using System;
+
+namespace FastTPV.Desktop.Views;
+
+public partial class MainWindow : Window
+{
+    private Timer? _idleCheckTimer;
+
+    public MainWindow()
+    {
+        InitializeComponent();
+        DataContext = new MainWindowViewModel();
+
+        // Session idle timeout (POS.AutoLogoffMinutes): any pointer/key activity resets
+        // the clock, and a background timer checks every 30s whether it's expired.
+        PointerMoved += (_, _) => AppRuntime.Session.Touch();
+        KeyDown += (_, _) => AppRuntime.Session.Touch();
+        AppRuntime.Session.Expired += (_, _) => Dispatcher.UIThread.Post(ForceSignOut);
+
+        _idleCheckTimer = new Timer(_ => AppRuntime.Session.Check(), null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
+
+        Closed += (_, _) => _idleCheckTimer?.Dispose();
+    }
+
+    private void Logout(object? sender, RoutedEventArgs e) => ForceSignOut();
+
+    private void ForceSignOut()
+    {
+        _idleCheckTimer?.Dispose();
+        new LoginWindow().Show();
+        Close();
+    }
+}

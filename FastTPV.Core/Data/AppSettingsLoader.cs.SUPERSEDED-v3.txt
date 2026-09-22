@@ -1,0 +1,129 @@
+using System.Text.Json;
+
+namespace FastTPV.Core.Data;
+
+/// <summary>
+/// The subset of appsettings.json FastTPV actually reads at startup.
+/// Kept deliberately small and dependency-free (System.Text.Json only) rather than
+/// pulling in Microsoft.Extensions.Configuration for a handful of values.
+/// </summary>
+public class RuntimeSettings
+{
+    public string ConnectionString { get; set; } = string.Empty;
+    public decimal DefaultTaxRate { get; set; } = 0.10m;
+    public string DefaultCurrency { get; set; } = "USD";
+    public bool AutoMigrate { get; set; } = true;
+    public int AutoLogoffMinutes { get; set; } = 15;
+    public string ReceiptFormat { get; set; } = "80mm";
+    public bool RequireLogin { get; set; } = true;
+    public int MinPasswordLength { get; set; } = 8;
+    public string BusinessName { get; set; } = "FastTPV";
+
+    // Printer connection: "None" (default — text-file receipt only, nothing sent to
+    // hardware), "Network" (raw ESC/POS over TCP to a thermal printer), or
+    // "WindowsShell" (legacy: ask Windows to print the receipt file with whatever's
+    // registered for .txt — for a regular document printer, not a thermal one).
+    public string PrinterName { get; set; } = "Default Printer";
+    public string PrinterConnection { get; set; } = "None";
+    public string PrinterIpAddress { get; set; } = string.Empty;
+    public int PrinterPort { get; set; } = 9100;
+    public int PrinterCodePage { get; set; } = 16;
+    public int PrinterConnectTimeoutMs { get; set; } = 3000;
+
+    public static readonly string DefaultConnectionString =
+        "Server=localhost;Database=FastTPV;Uid=root;Pwd=your_password;Convert Zero Datetime=true;Allow Zero Datetime=true";
+
+    /// <summary>
+    /// Loads settings from the given path. If the file doesn't exist, returns the
+    /// documented defaults (matching appsettings.json.template) so the app still starts
+    /// and reports a clear connection error instead of crashing on launch.
+    /// </summary>
+    public static RuntimeSettings Load(string path)
+    {
+        var settings = new RuntimeSettings { ConnectionString = DefaultConnectionString };
+
+        if (!File.Exists(path))
+        {
+            return settings;
+        }
+
+        try
+        {
+            using var doc = JsonDocument.Parse(File.ReadAllText(path));
+            var root = doc.RootElement;
+
+            if (root.TryGetProperty("ConnectionStrings", out var cs) &&
+                cs.TryGetProperty("DefaultConnection", out var def))
+            {
+                settings.ConnectionString = def.GetString() ?? settings.ConnectionString;
+            }
+
+            if (root.TryGetProperty("Database", out var database) &&
+                database.TryGetProperty("AutoMigrate", out var autoMigrate))
+            {
+                settings.AutoMigrate = autoMigrate.GetBoolean();
+            }
+
+            if (root.TryGetProperty("Application", out var application))
+            {
+                if (application.TryGetProperty("Company", out var company) &&
+                    !string.IsNullOrWhiteSpace(company.GetString()))
+                {
+                    settings.BusinessName = company.GetString()!;
+                }
+                else if (application.TryGetProperty("Name", out var name))
+                {
+                    settings.BusinessName = name.GetString() ?? settings.BusinessName;
+                }
+            }
+
+            if (root.TryGetProperty("POS", out var pos))
+            {
+                if (pos.TryGetProperty("DefaultTaxRate", out var taxRate))
+                    settings.DefaultTaxRate = taxRate.GetDecimal();
+
+                if (pos.TryGetProperty("DefaultCurrency", out var currency))
+                    settings.DefaultCurrency = currency.GetString() ?? settings.DefaultCurrency;
+
+                if (pos.TryGetProperty("AutoLogoffMinutes", out var logoff) && logoff.TryGetInt32(out var logoffMinutes))
+                    settings.AutoLogoffMinutes = logoffMinutes;
+
+                if (pos.TryGetProperty("PrinterName", out var printer))
+                    settings.PrinterName = printer.GetString() ?? settings.PrinterName;
+
+                if (pos.TryGetProperty("ReceiptFormat", out var format))
+                    settings.ReceiptFormat = format.GetString() ?? settings.ReceiptFormat;
+
+                if (pos.TryGetProperty("PrinterConnection", out var connection))
+                    settings.PrinterConnection = connection.GetString() ?? settings.PrinterConnection;
+
+                if (pos.TryGetProperty("PrinterIpAddress", out var ip))
+                    settings.PrinterIpAddress = ip.GetString() ?? settings.PrinterIpAddress;
+
+                if (pos.TryGetProperty("PrinterPort", out var port) && port.TryGetInt32(out var portValue))
+                    settings.PrinterPort = portValue;
+
+                if (pos.TryGetProperty("PrinterCodePage", out var codePage) && codePage.TryGetInt32(out var codePageValue))
+                    settings.PrinterCodePage = codePageValue;
+
+                if (pos.TryGetProperty("PrinterConnectTimeoutMs", out var timeout) && timeout.TryGetInt32(out var timeoutValue))
+                    settings.PrinterConnectTimeoutMs = timeoutValue;
+            }
+
+            if (root.TryGetProperty("Security", out var security))
+            {
+                if (security.TryGetProperty("RequireLogin", out var requireLogin))
+                    settings.RequireLogin = requireLogin.GetBoolean();
+
+                if (security.TryGetProperty("MinPasswordLength", out var minLength) && minLength.TryGetInt32(out var minLen))
+                    settings.MinPasswordLength = minLen;
+            }
+        }
+        catch (Exception)
+        {
+            // Malformed appsettings.json — fall back to defaults rather than crash on launch.
+        }
+
+        return settings;
+    }
+}

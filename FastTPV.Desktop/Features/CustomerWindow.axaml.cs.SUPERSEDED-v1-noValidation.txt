@@ -1,0 +1,109 @@
+using System.Collections.ObjectModel;
+using Avalonia.Controls;
+using Avalonia.Interactivity;
+using FastTPV.Core.Models;
+
+namespace FastTPV.Desktop.Features;
+
+public partial class CustomerWindow : Window
+{
+    private readonly ObservableCollection<Customer> _customers = new();
+    private Customer? _selected;
+
+    public CustomerWindow()
+    {
+        InitializeComponent();
+        CustomerList.ItemsSource = _customers;
+        Opened += async (_, _) => await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _customers.Clear();
+        foreach (var customer in await AppRuntime.Customers.GetAllAsync())
+            _customers.Add(customer);
+    }
+
+    private void SearchChanged(object? sender, TextChangedEventArgs e)
+    {
+        var text = Search.Text?.Trim() ?? "";
+        CustomerList.ItemsSource = string.IsNullOrEmpty(text)
+            ? _customers
+            : _customers.Where(c =>
+                c.Name.Contains(text, StringComparison.OrdinalIgnoreCase) ||
+                c.Code.Contains(text, StringComparison.OrdinalIgnoreCase) ||
+                c.Email.Contains(text, StringComparison.OrdinalIgnoreCase)).ToList();
+    }
+
+    private void CustomerSelected(object? sender, SelectionChangedEventArgs e)
+    {
+        if (CustomerList.SelectedItem is not Customer customer) return;
+
+        _selected = customer;
+        Code.Text = customer.Code;
+        Name.Text = customer.Name;
+        Email.Text = customer.Email;
+        Phone.Text = customer.Phone;
+        Address.Text = customer.Address;
+        City.Text = customer.City;
+        ZipCode.Text = customer.ZipCode;
+        TaxId.Text = customer.TaxId;
+        CreditLimit.Text = customer.CreditLimit.ToString("0.00");
+        CurrentDebt.Text = customer.CurrentDebt.ToString("0.00");
+        IsActive.IsChecked = customer.IsActive;
+        Message.Text = "";
+    }
+
+    private void NewCustomer(object? sender, RoutedEventArgs e)
+    {
+        _selected = new Customer { Code = $"C{DateTime.UtcNow:yyyyMMddHHmmss}" };
+        CustomerList.SelectedItem = null;
+        Code.Text = _selected.Code;
+        Name.Text = Email.Text = Phone.Text = Address.Text = City.Text = ZipCode.Text = TaxId.Text = CurrentDebt.Text = "";
+        CreditLimit.Text = "0";
+        IsActive.IsChecked = true;
+        Message.Text = "";
+    }
+
+    private async void Save(object? sender, RoutedEventArgs e)
+    {
+        if (_selected is null) NewCustomer(null, e);
+
+        if (string.IsNullOrWhiteSpace(Name.Text))
+        {
+            Message.Text = "Name is required.";
+            return;
+        }
+
+        _selected!.Name = Name.Text.Trim();
+        _selected.Email = Email.Text ?? "";
+        _selected.Phone = Phone.Text ?? "";
+        _selected.Address = Address.Text ?? "";
+        _selected.City = City.Text ?? "";
+        _selected.ZipCode = ZipCode.Text ?? "";
+        _selected.TaxId = TaxId.Text ?? "";
+        _selected.CreditLimit = decimal.TryParse(CreditLimit.Text, out var limit) ? limit : 0;
+        _selected.IsActive = IsActive.IsChecked == true;
+
+        var ok = _selected.Id == 0
+            ? await AppRuntime.Customers.AddAsync(_selected) > 0
+            : await AppRuntime.Customers.UpdateAsync(_selected);
+
+        Message.Text = ok ? "Customer saved." : "Unable to save customer.";
+        await AppRuntime.Audit.WriteAsync(AppRuntime.Session.CurrentUser, _selected.Id == 0 ? "Create" : "Update", "Customer", _selected.Code);
+
+        if (ok) await LoadAsync();
+    }
+
+    private async void Delete(object? sender, RoutedEventArgs e)
+    {
+        if (_selected?.Id is not > 0) return;
+
+        if (await AppRuntime.Customers.DeleteAsync(_selected.Id))
+        {
+            await AppRuntime.Audit.WriteAsync(AppRuntime.Session.CurrentUser, "Delete", "Customer", _selected.Code);
+            Message.Text = "Customer deleted.";
+            await LoadAsync();
+        }
+    }
+}

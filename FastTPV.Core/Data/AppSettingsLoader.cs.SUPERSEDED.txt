@@ -1,0 +1,67 @@
+using System.Text.Json;
+
+namespace FastTPV.Core.Data;
+
+/// <summary>
+/// The subset of appsettings.json FastTPV actually reads at startup.
+/// Kept deliberately small and dependency-free (System.Text.Json only) rather than
+/// pulling in Microsoft.Extensions.Configuration for a handful of values.
+/// </summary>
+public class RuntimeSettings
+{
+    public string ConnectionString { get; set; } = string.Empty;
+    public decimal DefaultTaxRate { get; set; } = 0.10m;
+    public string DefaultCurrency { get; set; } = "USD";
+    public bool AutoMigrate { get; set; } = true;
+
+    public static readonly string DefaultConnectionString =
+        "Server=localhost;Database=FastTPV;Uid=root;Pwd=your_password;Convert Zero Datetime=true;Allow Zero Datetime=true";
+
+    /// <summary>
+    /// Loads settings from the given path. If the file doesn't exist, returns the
+    /// documented defaults (matching appsettings.json.template) so the app still starts
+    /// and reports a clear connection error instead of crashing on launch.
+    /// </summary>
+    public static RuntimeSettings Load(string path)
+    {
+        var settings = new RuntimeSettings { ConnectionString = DefaultConnectionString };
+
+        if (!File.Exists(path))
+        {
+            return settings;
+        }
+
+        try
+        {
+            using var doc = JsonDocument.Parse(File.ReadAllText(path));
+            var root = doc.RootElement;
+
+            if (root.TryGetProperty("ConnectionStrings", out var cs) &&
+                cs.TryGetProperty("DefaultConnection", out var def))
+            {
+                settings.ConnectionString = def.GetString() ?? settings.ConnectionString;
+            }
+
+            if (root.TryGetProperty("Database", out var database) &&
+                database.TryGetProperty("AutoMigrate", out var autoMigrate))
+            {
+                settings.AutoMigrate = autoMigrate.GetBoolean();
+            }
+
+            if (root.TryGetProperty("POS", out var pos))
+            {
+                if (pos.TryGetProperty("DefaultTaxRate", out var taxRate))
+                    settings.DefaultTaxRate = taxRate.GetDecimal();
+
+                if (pos.TryGetProperty("DefaultCurrency", out var currency))
+                    settings.DefaultCurrency = currency.GetString() ?? settings.DefaultCurrency;
+            }
+        }
+        catch (Exception)
+        {
+            // Malformed appsettings.json — fall back to defaults rather than crash on launch.
+        }
+
+        return settings;
+    }
+}

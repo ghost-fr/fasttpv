@@ -1,0 +1,115 @@
+using FastTPV.Core.Data;
+using FastTPV.Core.Services;
+using MySql.Data.MySqlClient;
+using Serilog;
+using System.Text;
+
+namespace FastTPV.Desktop.Features;
+
+/// <summary>
+/// Composition root / service locator for FastTPV.Desktop. Built once at startup
+/// (see App.axaml.cs) and read from everywhere else — the Features windows
+/// (Login, Customer, Reports) and MainWindowViewModel all reach services through
+/// this rather than taking them as constructor parameters, since those windows are
+/// opened directly from XAML-adjacent code-behind rather than through DI.
+/// </summary>
+public static class AppRuntime
+{
+    private static readonly ILogger Logger = Log.ForContext(typeof(AppRuntime));
+
+    public static RuntimeSettings Settings { get; private set; } = new();
+    public static DatabaseContext Database { get; private set; } = null!;
+    public static ArticleService Articles { get; private set; } = null!;
+    public static CustomerService Customers { get; private set; } = null!;
+    public static SaleService Sales { get; private set; } = null!;
+    public static UserAccountService Accounts { get; private set; } = null!;
+    public static AuditService Audit { get; private set; } = null!;
+    public static ReportsService Reports { get; private set; } = null!;
+    public static ReceiptService Receipts { get; private set; } = null!;
+    public static SessionManager Session { get; private set; } = null!;
+
+    /// <summary>
+    /// Completes once the DB connection has been verified and schema/default-admin
+    /// bootstrap has run. LoginWindow awaits this before attempting to authenticate,
+    /// so a slow-to-start MySQL server can't race a very fast click on "Sign in".
+    /// </summary>
+    public static Task Ready { get; private set; } = Task.CompletedTask;
+
+    public static void Initialize(RuntimeSettings settings)
+    {
+        // Windows-1252 (needed for Spanish diacritics/ñ/¿/¡ on ESC/POS receipts)
+        // isn't included by default outside ASCII/UTF-8/Unicode in .NET Core;
+        // registering the provider once here makes Encoding.GetEncoding(1252)
+        // work anywhere in the app, including on non-Windows OSes.
+        Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+
+        Settings = settings;
+        Database = new DatabaseContext(settings.ConnectionString);
+        Articles = new ArticleService(Database);
+        Customers = new CustomerService(Database);
+        Sales = new SaleService(Database);
+        Accounts = new UserAccountService(Database);
+        Audit = new AuditService(Database);
+        Reports = new ReportsService(Sales, Articles);
+        Receipts = new ReceiptService();
+        Session = new SessionManager(TimeSpan.FromMinutes(Math.Max(1, settings.AutoLogoffMinutes)));
+
+        Ready = BootstrapAsync(settings.AutoMigrate);
+    }
+
+    private static async Task BootstrapAsync(bool autoMigrate)
+    {
+        var connected = await Database.TestConnectionAsync();
+        if (!connected)
+        {
+            Logger.Error("Could not connect to the database. Check appsettings.json and that MySQL is running.");
+            return;
+        }
+
+        if (autoMigrate)
+        {
+            await DatabaseInitializer.EnsureSchemaAsync(Database);
+        }
+
+        await EnsureDefaultAdminAsync();
+    }
+
+    /// <summary>
+    /// Seeds a default admin account the first time the Users table is empty, so
+    /// there's a way to log in at all on a brand new database. Logs the generated
+    /// credentials once — change the password immediately after first login, since
+    /// there's currently no "create additional user" screen; more accounts have to be
+    /// inserted directly, following the same PBKDF2 hash/salt shape UserAccountService
+    /// produces.
+    /// </summary>
+    private static async Task EnsureDefaultAdminAsync()
+    {
+        try
+        {
+            var count = await Database.ExecuteScalarAsync("SELECT COUNT(*) FROM Users");
+            if (Convert.ToInt64(count) > 0) return;
+
+            const string defaultPassword = "ChangeMe123!";
+            var (hash, salt) = UserAccountService.HashPassword(defaultPassword);
+
+            await Database.ExecuteNonQueryAsync(
+                "INSERT INTO Users (UserName, DisplayName, PasswordHash, PasswordSalt, IsActive, CreatedAt) " +
+                "VALUES (@UserName, @DisplayName, @Hash, @Salt, 1, @CreatedAt)",
+                new MySqlParameter("@UserName", "admin"),
+                new MySqlParameter("@DisplayName", "Administrator"),
+                new MySqlParameter("@Hash", hash),
+                new MySqlParameter("@Salt", salt),
+                new MySqlParameter("@CreatedAt", DateTime.UtcNow));
+
+            Logger.Warning(
+                "No users existed — created a default admin account (username: admin, password: {DefaultPassword}). " +
+                "Sign in and change this immediately; there is no in-app password change screen yet, " +
+                "so for now that means updating the Users row's PasswordHash/PasswordSalt directly.",
+                defaultPassword);
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Could not verify/seed the default admin account");
+        }
+    }
+}

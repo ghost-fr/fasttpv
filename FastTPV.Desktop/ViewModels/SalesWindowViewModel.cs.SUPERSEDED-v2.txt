@@ -1,0 +1,333 @@
+using FastTPV.Core.Models;
+using FastTPV.Core.Services;
+using FastTPV.Desktop.Features;
+using ReactiveUI;
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
+using System.Reactive;
+using System.Reactive.Linq;
+using System.Threading.Tasks;
+
+namespace FastTPV.Desktop.ViewModels;
+
+/// <summary>
+/// A line in the shopping cart. Kept separate from Core.Models.SaleLineItem because
+/// it needs to be an observable, editable UI-facing object (quantity stepper etc.)
+/// before it's converted to a persisted SaleLineItem at checkout.
+/// </summary>
+public class CartLineViewModel : ViewModelBase
+{
+    public int ArticleId { get; }
+    public string ArticleName { get; }
+    public decimal UnitPrice { get; }
+    public int AvailableStock { get; }
+
+    private int _quantity;
+    public int Quantity
+    {
+        get => _quantity;
+        set => this.RaiseAndSetIfChanged(ref _quantity, value);
+    }
+
+    public decimal LineTotal => UnitPrice * Quantity;
+
+    public CartLineViewModel(Article article, int quantity)
+    {
+        ArticleId = article.Id;
+        ArticleName = article.Name;
+        UnitPrice = article.Price;
+        AvailableStock = article.StockLevel;
+        Quantity = quantity;
+
+        this.WhenAnyValue(x => x.Quantity)
+            .Subscribe(_ => this.RaisePropertyChanged(nameof(LineTotal)));
+    }
+}
+
+public class SalesWindowViewModel : ViewModelBase
+{
+    private readonly ArticleService _articleService;
+    private readonly SaleService _saleService;
+    private readonly CustomerService _customerService;
+    private readonly decimal _taxRate;
+
+    public ObservableCollection<Article> Products { get; } = new();
+    public ObservableCollection<Article> FilteredProducts { get; } = new();
+    public ObservableCollection<CartLineViewModel> CartItems { get; } = new();
+    public ObservableCollection<Customer> Customers { get; } = new();
+    public ObservableCollection<string> Categories { get; } = new();
+
+    private string _searchText = string.Empty;
+    public string SearchText
+    {
+        get => _searchText;
+        set
+        {
+            this.RaiseAndSetIfChanged(ref _searchText, value);
+            ApplyFilter();
+        }
+    }
+
+    private string _selectedCategory = "All Products";
+    public string SelectedCategory
+    {
+        get => _selectedCategory;
+        set
+        {
+            this.RaiseAndSetIfChanged(ref _selectedCategory, value);
+            ApplyFilter();
+        }
+    }
+
+    private Customer? _selectedCustomer;
+    public Customer? SelectedCustomer
+    {
+        get => _selectedCustomer;
+        set => this.RaiseAndSetIfChanged(ref _selectedCustomer, value);
+    }
+
+    private string _statusMessage = string.Empty;
+    public string StatusMessage
+    {
+        get => _statusMessage;
+        set => this.RaiseAndSetIfChanged(ref _statusMessage, value);
+    }
+
+    private string _lastTicketNumber = string.Empty;
+    public string LastTicketNumber
+    {
+        get => _lastTicketNumber;
+        set => this.RaiseAndSetIfChanged(ref _lastTicketNumber, value);
+    }
+
+    private bool _isBusy;
+    public bool IsBusy
+    {
+        get => _isBusy;
+        set => this.RaiseAndSetIfChanged(ref _isBusy, value);
+    }
+
+    public decimal Subtotal => CartItems.Sum(i => i.LineTotal);
+    public decimal Tax => Math.Round(Subtotal * _taxRate, 2);
+    public decimal Total => Subtotal + Tax;
+
+    public ReactiveCommand<Article, Unit> AddToCartCommand { get; }
+    public ReactiveCommand<CartLineViewModel, Unit> IncrementLineCommand { get; }
+    public ReactiveCommand<CartLineViewModel, Unit> DecrementLineCommand { get; }
+    public ReactiveCommand<CartLineViewModel, Unit> RemoveLineCommand { get; }
+    public ReactiveCommand<Unit, Unit> ClearCartCommand { get; }
+    public ReactiveCommand<string, Unit> CompleteSaleCommand { get; }
+    public ReactiveCommand<Unit, Unit> RefreshCommand { get; }
+
+    public SalesWindowViewModel(ArticleService articleService, SaleService saleService,
+        CustomerService customerService, decimal taxRate)
+    {
+        _articleService = articleService;
+        _saleService = saleService;
+        _customerService = customerService;
+        _taxRate = taxRate;
+
+        CartItems.CollectionChanged += (_, _) => RaiseTotalsChanged();
+
+        AddToCartCommand = ReactiveCommand.Create<Article>(AddToCart);
+        IncrementLineCommand = ReactiveCommand.Create<CartLineViewModel>(line =>
+        {
+            if (line.Quantity < line.AvailableStock) line.Quantity++;
+            RaiseTotalsChanged();
+        });
+        DecrementLineCommand = ReactiveCommand.Create<CartLineViewModel>(line =>
+        {
+            if (line.Quantity > 1) line.Quantity--;
+            else CartItems.Remove(line);
+            RaiseTotalsChanged();
+        });
+        RemoveLineCommand = ReactiveCommand.Create<CartLineViewModel>(line =>
+        {
+            CartItems.Remove(line);
+            RaiseTotalsChanged();
+        });
+        ClearCartCommand = ReactiveCommand.Create(() =>
+        {
+            CartItems.Clear();
+            RaiseTotalsChanged();
+        });
+
+        var canComplete = this.WhenAnyValue(x => x.Subtotal, x => x.IsBusy, (s, busy) => s > 0 && !busy);
+        CompleteSaleCommand = ReactiveCommand.CreateFromTask<string>(CompleteSaleAsync, canComplete);
+
+        RefreshCommand = ReactiveCommand.CreateFromTask(LoadProductsAsync);
+
+        _ = LoadProductsAsync();
+        _ = LoadCustomersAsync();
+    }
+
+    private void AddToCart(Article article)
+    {
+        if (article.StockLevel <= 0)
+        {
+            StatusMessage = $"{article.Name} is out of stock.";
+            return;
+        }
+
+        var existing = CartItems.FirstOrDefault(c => c.ArticleId == article.Id);
+        if (existing != null)
+        {
+            if (existing.Quantity < existing.AvailableStock)
+                existing.Quantity++;
+            else
+                StatusMessage = $"Only {existing.AvailableStock} of {article.Name} in stock.";
+        }
+        else
+        {
+            CartItems.Add(new CartLineViewModel(article, 1));
+        }
+
+        StatusMessage = string.Empty;
+        RaiseTotalsChanged();
+    }
+
+    private async Task LoadProductsAsync()
+    {
+        try
+        {
+            var articles = await _articleService.GetAllAsync();
+
+            Products.Clear();
+            foreach (var a in articles) Products.Add(a);
+
+            Categories.Clear();
+            Categories.Add("All Products");
+            foreach (var cat in articles.Select(a => a.Category).Where(c => !string.IsNullOrWhiteSpace(c)).Distinct().OrderBy(c => c))
+                Categories.Add(cat);
+
+            ApplyFilter();
+            StatusMessage = $"{articles.Count} products loaded.";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Could not load products: {ex.Message}";
+        }
+    }
+
+    private async Task LoadCustomersAsync()
+    {
+        try
+        {
+            var customers = await _customerService.GetAllAsync();
+            Customers.Clear();
+            Customers.Add(new Customer { Id = 0, Name = "Walk-in Customer" });
+            foreach (var c in customers) Customers.Add(c);
+            SelectedCustomer = Customers.First();
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Could not load customers: {ex.Message}";
+        }
+    }
+
+    private void ApplyFilter()
+    {
+        FilteredProducts.Clear();
+
+        IEnumerable<Article> query = Products;
+
+        if (!string.IsNullOrWhiteSpace(SelectedCategory) && SelectedCategory != "All Products")
+            query = query.Where(a => a.Category == SelectedCategory);
+
+        if (!string.IsNullOrWhiteSpace(SearchText))
+        {
+            var text = SearchText.Trim();
+            query = query.Where(a =>
+                a.Name.Contains(text, StringComparison.OrdinalIgnoreCase) ||
+                a.Code.Contains(text, StringComparison.OrdinalIgnoreCase));
+        }
+
+        foreach (var article in query)
+            FilteredProducts.Add(article);
+    }
+
+    private async Task CompleteSaleAsync(string paymentMethod)
+    {
+        if (CartItems.Count == 0) return;
+
+        IsBusy = true;
+        try
+        {
+            var ticketNumber = await _saleService.GenerateNextTicketNumberAsync();
+
+            var sale = new Sale
+            {
+                TicketNumber = ticketNumber,
+                CustomerId = SelectedCustomer?.Id ?? 0,
+                SaleDate = DateTime.Now,
+                SubTotal = Subtotal,
+                Tax = Tax,
+                TotalAmount = Total,
+                PaymentMethod = paymentMethod,
+                Status = "Completed"
+            };
+
+            foreach (var line in CartItems)
+            {
+                sale.LineItems.Add(new SaleLineItem
+                {
+                    ArticleId = line.ArticleId,
+                    ArticleName = line.ArticleName,
+                    Quantity = line.Quantity,
+                    UnitPrice = line.UnitPrice,
+                    LineTotal = line.LineTotal
+                });
+            }
+
+            var saleId = await _saleService.AddAsync(sale);
+            if (saleId == 0)
+            {
+                StatusMessage = "Could not save the sale. Check the database connection.";
+                return;
+            }
+
+            foreach (var line in CartItems)
+            {
+                await _articleService.AdjustStockAsync(line.ArticleId, -line.Quantity);
+            }
+
+            // Best-effort extras: neither should be able to undo a sale that already
+            // succeeded, so failures here are logged to StatusMessage but don't roll
+            // back the completed transaction.
+            try
+            {
+                await AppRuntime.Receipts.CreateAndPrintAsync(sale, AppRuntime.Settings.PrinterName, AppRuntime.Settings.ReceiptFormat);
+            }
+            catch (Exception ex)
+            {
+                StatusMessage = $"Sale saved, but the receipt could not be written: {ex.Message}";
+            }
+
+            await AppRuntime.Audit.WriteAsync(AppRuntime.Session.CurrentUser, "Sale", "Sale", ticketNumber);
+
+            LastTicketNumber = ticketNumber;
+            StatusMessage = $"Sale {ticketNumber} completed via {paymentMethod} — {Total:C}.";
+
+            CartItems.Clear();
+            RaiseTotalsChanged();
+            await LoadProductsAsync();
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Checkout failed: {ex.Message}";
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    private void RaiseTotalsChanged()
+    {
+        this.RaisePropertyChanged(nameof(Subtotal));
+        this.RaisePropertyChanged(nameof(Tax));
+        this.RaisePropertyChanged(nameof(Total));
+    }
+}

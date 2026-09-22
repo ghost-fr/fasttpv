@@ -1,0 +1,68 @@
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Server=localhost;Database=FastTPV;Uid=root;Pwd=your_password;Convert Zero Datetime=true;Allow Zero Datetime=true"
+  },
+  "Application": {
+    "Name": "FastTPV",
+    "Version": "1.0.0",
+    "Company": "Your Company Name",
+    "DebugMode": false
+  },
+  "Company": {
+    "BusinessName": "Your Company Name",
+    "TradeName": "",
+    "TaxId": "",
+    "AddressLine1": "",
+    "AddressLine2": "",
+    "City": "",
+    "PostalCode": "",
+    "Province": "",
+    "Country": "",
+    "Phone": "",
+    "Email": "",
+    "Website": "",
+    "ReceiptHeader": "",
+    "ReceiptFooter": "Thank you for your purchase!",
+    "LogoPath": ""
+  },
+  "Database": {
+    "Provider": "MySQL",
+    "AutoMigrate": true,
+    "ConnectionTimeout": 30
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft": "Warning",
+      "System": "Warning"
+    },
+    "FilePath": "Logs/fasttpv-.txt",
+    "RetainedFileCountLimit": 10
+  },
+  "Features": {
+    "EnableBiometricAuth": false,
+    "EnableAdvancedReporting": true,
+    "EnableMultiLanguage": false,
+    "EnableWebDashboard": false
+  },
+  "POS": {
+    "DefaultCurrency": "USD",
+    "DefaultTaxRate": 0.10,
+    "AutoLogoffMinutes": 15,
+    "SessionTimeout": 30,
+    "ReceiptFormat": "80mm",
+    "PrinterName": "Default Printer",
+    "PrinterConnection": "None",
+    "PrinterIpAddress": "192.168.1.50",
+    "PrinterPort": 9100,
+    "PrinterCodePage": 16,
+    "PrinterConnectTimeoutMs": 3000,
+    "PrinterCutStyle": "Standard"
+  },
+  "Security": {
+    "RequireLogin": true,
+    "MinPasswordLength": 8,
+    "SessionEncryption": true,
+    "EnableAuditLog": true
+  }
+}

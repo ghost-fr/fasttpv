@@ -1,0 +1,90 @@
+using System.Text;
+
+namespace FastTPV.Desktop.Features;
+
+public enum TextAlign { Left, Center, Right }
+
+/// <summary>
+/// Builds a raw ESC/POS byte stream for thermal receipt printers. Implements the
+/// small subset of the (widely cloned) Epson ESC/POS command set needed for a
+/// simple receipt: initialize, character code table, alignment, bold, double-size
+/// text, line feed, and cut.
+///
+/// The commands themselves are standard, documented ESC/POS — implemented by the
+/// overwhelming majority of "ESC/POS compatible" thermal printers regardless of
+/// brand. Two things are still genuinely printer/firmware-dependent and may need
+/// adjusting for your specific hardware:
+///   - SelectCodePage's argument: the numeric code that maps to Windows-1252
+///     (needed for á/é/í/ó/ú/ñ/¿/¡) is NOT standardized across manufacturers.
+///     16 is a common value on Epson-compatible firmware, but if accented
+///     characters print as garbled symbols, this is the first thing to change
+///     (via appsettings.json's POS.PrinterCodePage) — try 0, 2, or check your
+///     printer's manual for its character code table list.
+///   - Cut() uses the classic one-parameter form (GS V m). A minority of clone
+///     printers instead expect the newer two-parameter form (GS V 66 n) — if the
+///     paper isn't cut at all after a successful print, that's the likely reason.
+/// This has not been tested against physical hardware — verify with a real print.
+/// </summary>
+public sealed class EscPosBuilder
+{
+    private readonly List<byte> _bytes = new();
+    private readonly Encoding _encoding;
+
+    public EscPosBuilder(Encoding encoding)
+    {
+        _encoding = encoding;
+        _bytes.AddRange(new byte[] { 0x1B, 0x40 }); // ESC @ — initialize printer
+    }
+
+    public EscPosBuilder SelectCodePage(int n)
+    {
+        _bytes.AddRange(new byte[] { 0x1B, 0x74, (byte)n }); // ESC t n
+        return this;
+    }
+
+    public EscPosBuilder Align(TextAlign align)
+    {
+        byte n = align switch { TextAlign.Center => 1, TextAlign.Right => 2, _ => 0 };
+        _bytes.AddRange(new byte[] { 0x1B, 0x61, n }); // ESC a n
+        return this;
+    }
+
+    public EscPosBuilder Bold(bool on)
+    {
+        _bytes.AddRange(new byte[] { 0x1B, 0x45, (byte)(on ? 1 : 0) }); // ESC E n
+        return this;
+    }
+
+    public EscPosBuilder DoubleSize(bool on)
+    {
+        _bytes.AddRange(new byte[] { 0x1D, 0x21, (byte)(on ? 0x11 : 0x00) }); // GS ! n (double width+height)
+        return this;
+    }
+
+    public EscPosBuilder Text(string text)
+    {
+        _bytes.AddRange(_encoding.GetBytes(text));
+        return this;
+    }
+
+    public EscPosBuilder Line(string text = "")
+    {
+        Text(text);
+        _bytes.Add(0x0A);
+        return this;
+    }
+
+    public EscPosBuilder Feed(int lines = 1)
+    {
+        _bytes.AddRange(new byte[] { 0x1B, 0x64, (byte)lines }); // ESC d n
+        return this;
+    }
+
+    public EscPosBuilder Cut(bool partial = true)
+    {
+        _bytes.AddRange(new byte[] { 0x1D, 0x56, (byte)(partial ? 1 : 0) }); // GS V m
+        return this;
+    }
+
+    public byte[] ToArray() => _bytes.ToArray();
+}

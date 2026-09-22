@@ -1,0 +1,17 @@
+using Avalonia.Controls;
+using FastTPV.Desktop.ViewModels;
+
+namespace FastTPV.Desktop.Views;
+
+public partial class SalesWindow : Window
+{
+    public SalesWindow()
+    {
+        InitializeComponent();
+    }
+
+    public SalesWindow(SalesWindowViewModel viewModel) : this()
+    {
+        DataContext = viewModel;
+    }
+}

@@ -1,0 +1,34 @@
+using Avalonia.Controls;
+using Avalonia.Interactivity;
+using FastTPV.Desktop.Views;
+
+namespace FastTPV.Desktop.Features;
+
+public partial class LoginWindow : Window
+{
+    public LoginWindow() => InitializeComponent();
+
+    private async void SignIn(object? sender, RoutedEventArgs e)
+    {
+        Message.Text = "";
+
+        // AppRuntime.Ready completes once the DB connection has been verified and the
+        // schema/default-admin bootstrap has run. Awaiting it here avoids a race where
+        // the user clicks Sign in before that startup work finishes.
+        await AppRuntime.Ready;
+
+        var session = await AppRuntime.Accounts.AuthenticateAsync(UserName.Text ?? "", Password.Text ?? "");
+        if (session is null)
+        {
+            Message.Text = "Invalid credentials, or the database isn't reachable — check appsettings.json.";
+            return;
+        }
+
+        AppRuntime.Session.Start(session);
+        await AppRuntime.Audit.WriteAsync(session, "Login", "Session");
+
+        var main = new MainWindow();
+        main.Show();
+        Close();
+    }
+}

@@ -1,0 +1,615 @@
+using Avalonia.Controls;
+using FastTPV.Core.Models;
+using FastTPV.Core.Services;
+using FastTPV.Desktop.Features;
+using ReactiveUI;
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
+using System.Reactive;
+using System.Reactive.Linq;
+using System.Threading.Tasks;
+
+namespace FastTPV.Desktop.ViewModels;
+
+/// <summary>
+/// A line in the shopping cart. Kept separate from Core.Models.SaleLineItem because
+/// it needs to be an observable, editable UI-facing object (quantity stepper, an
+/// editable discount, etc.) before it's converted to a persisted SaleLineItem at
+/// checkout.
+/// </summary>
+public class CartLineViewModel : ViewModelBase
+{
+    public int ArticleId { get; }
+    public string ArticleName { get; }
+    public decimal UnitPrice { get; }
+    public int AvailableStock { get; }
+
+    private int _quantity;
+    public int Quantity
+    {
+        get => _quantity;
+        set => this.RaiseAndSetIfChanged(ref _quantity, value);
+    }
+
+    /// <summary>The percent typed into the line's discount box (0-100), as text so an
+    /// empty/partial entry while typing doesn't need to parse as a number.</summary>
+    private string _discountPercentText = "0";
+    public string DiscountPercentText
+    {
+        get => _discountPercentText;
+        set => this.RaiseAndSetIfChanged(ref _discountPercentText, value);
+    }
+
+    /// <summary>Absolute money amount, computed from DiscountPercentText once applied
+    /// (via SalesWindowViewModel.SetLineDiscountCommand) — not live-bound to the text,
+    /// since a discount above the cashier threshold needs approval before it takes
+    /// effect.</summary>
+    private decimal _discountAmount;
+    public decimal DiscountAmount => _discountAmount;
+
+    public decimal LineTotal => (UnitPrice * Quantity) - _discountAmount;
+
+    public CartLineViewModel(Article article, int quantity)
+    {
+        ArticleId = article.Id;
+        ArticleName = article.Name;
+        UnitPrice = article.Price;
+        AvailableStock = article.StockLevel;
+        Quantity = quantity;
+
+        this.WhenAnyValue(x => x.Quantity)
+            .Subscribe(_ => this.RaisePropertyChanged(nameof(LineTotal)));
+    }
+
+    /// <summary>Applies an already-approved discount amount to this line.</summary>
+    public void SetDiscountAmount(decimal amount)
+    {
+        _discountAmount = amount;
+        this.RaisePropertyChanged(nameof(DiscountAmount));
+        this.RaisePropertyChanged(nameof(LineTotal));
+    }
+}
+
+public class SalesWindowViewModel : ViewModelBase
+{
+    private readonly ArticleService _articleService;
+    private readonly SaleService _saleService;
+    private readonly CustomerService _customerService;
+    private readonly decimal _taxRate;
+
+    /// <summary>
+    /// Set by SalesWindow's constructor right after DataContext is assigned, so the
+    /// approval dialog for large discounts can be shown as a proper owned modal
+    /// (Avalonia's ShowDialog needs an owner window, which a ViewModel doesn't
+    /// otherwise have a reference to).
+    /// </summary>
+    public Window? OwnerWindow { get; set; }
+
+    public ObservableCollection<Article> Products { get; } = new();
+    public ObservableCollection<Article> FilteredProducts { get; } = new();
+    public ObservableCollection<CartLineViewModel> CartItems { get; } = new();
+    public ObservableCollection<Customer> Customers { get; } = new();
+    public ObservableCollection<string> Categories { get; } = new();
+
+    private string _searchText = string.Empty;
+    public string SearchText
+    {
+        get => _searchText;
+        set
+        {
+            this.RaiseAndSetIfChanged(ref _searchText, value);
+            ApplyFilter();
+        }
+    }
+
+    private string _selectedCategory = "All Products";
+    public string SelectedCategory
+    {
+        get => _selectedCategory;
+        set
+        {
+            this.RaiseAndSetIfChanged(ref _selectedCategory, value);
+            ApplyFilter();
+        }
+    }
+
+    private Customer? _selectedCustomer;
+    public Customer? SelectedCustomer
+    {
+        get => _selectedCustomer;
+        set => this.RaiseAndSetIfChanged(ref _selectedCustomer, value);
+    }
+
+    private string _statusMessage = string.Empty;
+    public string StatusMessage
+    {
+        get => _statusMessage;
+        set => this.RaiseAndSetIfChanged(ref _statusMessage, value);
+    }
+
+    private string _lastTicketNumber = string.Empty;
+    public string LastTicketNumber
+    {
+        get => _lastTicketNumber;
+        set => this.RaiseAndSetIfChanged(ref _lastTicketNumber, value);
+    }
+
+    private bool _isBusy;
+    public bool IsBusy
+    {
+        get => _isBusy;
+        set => this.RaiseAndSetIfChanged(ref _isBusy, value);
+    }
+
+    /// <summary>The percent typed into the ticket-level discount box.</summary>
+    private string _ticketDiscountPercentText = "0";
+    public string TicketDiscountPercentText
+    {
+        get => _ticketDiscountPercentText;
+        set => this.RaiseAndSetIfChanged(ref _ticketDiscountPercentText, value);
+    }
+
+    private decimal _ticketDiscountAmount;
+    public decimal TicketDiscountAmount
+    {
+        get => _ticketDiscountAmount;
+        private set => this.RaiseAndSetIfChanged(ref _ticketDiscountAmount, value);
+    }
+
+    // --- Split/mixed tender ---
+    private string _cashTenderedText = "";
+    public string CashTenderedText
+    {
+        get => _cashTenderedText;
+        set
+        {
+            this.RaiseAndSetIfChanged(ref _cashTenderedText, value);
+            RaiseSplitTenderChanged();
+        }
+    }
+
+    private string _cardTenderedText = "";
+    public string CardTenderedText
+    {
+        get => _cardTenderedText;
+        set
+        {
+            this.RaiseAndSetIfChanged(ref _cardTenderedText, value);
+            RaiseSplitTenderChanged();
+        }
+    }
+
+    private decimal ParsedCashTendered => decimal.TryParse(CashTenderedText, out var v) ? v : 0m;
+    private decimal ParsedCardTendered => decimal.TryParse(CardTenderedText, out var v) ? v : 0m;
+
+    public decimal SplitTenderedTotal => ParsedCashTendered + ParsedCardTendered;
+
+    /// <summary>Positive = change owed to the customer; negative = still short.</summary>
+    public decimal SplitBalance => SplitTenderedTotal - Total;
+
+    /// <summary>Human-readable summary of where the split payment currently stands,
+    /// for display next to the Cash/Card amount fields.</summary>
+    public string SplitStatusText => SplitBalance switch
+    {
+        > 0 => $"Tendered {SplitTenderedTotal:C} — change due {SplitBalance:C}",
+        < 0 => $"Tendered {SplitTenderedTotal:C} — short {Math.Abs(SplitBalance):C}",
+        _ => $"Tendered {SplitTenderedTotal:C} — exact"
+    };
+
+    /// <summary>Sum of line totals after each line's own discount, before the
+    /// ticket-level discount is taken off.</summary>
+    public decimal Subtotal => CartItems.Sum(i => i.LineTotal);
+
+    /// <summary>What tax is actually calculated on — Subtotal minus the ticket-level discount.</summary>
+    public decimal TaxableBase => Subtotal - TicketDiscountAmount;
+
+    public decimal Tax => Math.Round(TaxableBase * _taxRate, 2);
+    public decimal Total => TaxableBase + Tax;
+
+    public ReactiveCommand<Article, Unit> AddToCartCommand { get; }
+    public ReactiveCommand<CartLineViewModel, Unit> IncrementLineCommand { get; }
+    public ReactiveCommand<CartLineViewModel, Unit> DecrementLineCommand { get; }
+    public ReactiveCommand<CartLineViewModel, Unit> RemoveLineCommand { get; }
+    public ReactiveCommand<CartLineViewModel, Unit> SetLineDiscountCommand { get; }
+    public ReactiveCommand<Unit, Unit> ApplyTicketDiscountCommand { get; }
+    public ReactiveCommand<Unit, Unit> ClearCartCommand { get; }
+    public ReactiveCommand<string, Unit> CompleteSaleCommand { get; }
+    public ReactiveCommand<Unit, Unit> CompleteSplitSaleCommand { get; }
+    public ReactiveCommand<Unit, Unit> RefreshCommand { get; }
+
+    public SalesWindowViewModel(ArticleService articleService, SaleService saleService,
+        CustomerService customerService, decimal taxRate)
+    {
+        _articleService = articleService;
+        _saleService = saleService;
+        _customerService = customerService;
+        _taxRate = taxRate;
+
+        CartItems.CollectionChanged += (_, _) => RaiseTotalsChanged();
+
+        AddToCartCommand = ReactiveCommand.Create<Article>(AddToCart);
+        IncrementLineCommand = ReactiveCommand.Create<CartLineViewModel>(line =>
+        {
+            if (line.Quantity < line.AvailableStock) line.Quantity++;
+            RaiseTotalsChanged();
+        });
+        DecrementLineCommand = ReactiveCommand.Create<CartLineViewModel>(line =>
+        {
+            if (line.Quantity > 1) line.Quantity--;
+            else CartItems.Remove(line);
+            RaiseTotalsChanged();
+        });
+        RemoveLineCommand = ReactiveCommand.Create<CartLineViewModel>(line =>
+        {
+            CartItems.Remove(line);
+            RaiseTotalsChanged();
+        });
+        SetLineDiscountCommand = ReactiveCommand.CreateFromTask<CartLineViewModel>(SetLineDiscountAsync);
+        ApplyTicketDiscountCommand = ReactiveCommand.CreateFromTask(ApplyTicketDiscountAsync);
+        ClearCartCommand = ReactiveCommand.Create(() =>
+        {
+            CartItems.Clear();
+            TicketDiscountAmount = 0;
+            TicketDiscountPercentText = "0";
+            CashTenderedText = "";
+            CardTenderedText = "";
+            RaiseTotalsChanged();
+        });
+
+        var canComplete = this.WhenAnyValue(x => x.Subtotal, x => x.IsBusy, (s, busy) => s > 0 && !busy);
+        CompleteSaleCommand = ReactiveCommand.CreateFromTask<string>(CompleteSaleAsync, canComplete);
+
+        var canCompleteSplit = this.WhenAnyValue(
+            x => x.Subtotal, x => x.SplitTenderedTotal, x => x.Total, x => x.IsBusy,
+            (subtotal, tendered, total, busy) => subtotal > 0 && tendered >= total && !busy);
+        CompleteSplitSaleCommand = ReactiveCommand.CreateFromTask(CompleteSplitSaleAsync, canCompleteSplit);
+
+        RefreshCommand = ReactiveCommand.CreateFromTask(LoadProductsAsync);
+
+        _ = LoadProductsAsync();
+        _ = LoadCustomersAsync();
+    }
+
+    private void AddToCart(Article article)
+    {
+        if (article.StockLevel <= 0)
+        {
+            StatusMessage = $"{article.Name} is out of stock.";
+            return;
+        }
+
+        var existing = CartItems.FirstOrDefault(c => c.ArticleId == article.Id);
+        if (existing != null)
+        {
+            if (existing.Quantity < existing.AvailableStock)
+                existing.Quantity++;
+            else
+                StatusMessage = $"Only {existing.AvailableStock} of {article.Name} in stock.";
+        }
+        else
+        {
+            CartItems.Add(new CartLineViewModel(article, 1));
+        }
+
+        StatusMessage = string.Empty;
+        RaiseTotalsChanged();
+    }
+
+    /// <summary>
+    /// Called from SalesWindow's SearchKeyDown handler when the search box has focus
+    /// and Enter is pressed — the pattern a barcode scanner produces (types the code,
+    /// then sends an Enter keystroke). Looks for an exact code match (not a substring
+    /// match like the live-filter search does) so scanning "1234" never accidentally
+    /// adds a different product whose code merely contains "1234". On a match, adds
+    /// one unit to the cart and clears the search box so the next scan starts fresh;
+    /// on no match, leaves the search box as-is (it still works as a normal filter)
+    /// and reports the miss in the status bar instead of silently doing nothing.
+    /// </summary>
+    public void TryQuickAddByCode()
+    {
+        var code = SearchText?.Trim();
+        if (string.IsNullOrEmpty(code)) return;
+
+        var match = Products.FirstOrDefault(a =>
+            string.Equals(a.Code, code, StringComparison.OrdinalIgnoreCase));
+
+        if (match is null)
+        {
+            StatusMessage = $"No product found for code '{code}'.";
+            return;
+        }
+
+        AddToCart(match);
+        SearchText = string.Empty;
+    }
+
+    /// <summary>
+    /// Applies a per-line discount typed into that line's DiscountPercentText. A
+    /// discount above POS.MaxCashierDiscountPercent needs an Admin to approve it via
+    /// ApprovalDialog (skipped entirely if the signed-in user already is an Admin).
+    /// </summary>
+    private async Task SetLineDiscountAsync(CartLineViewModel line)
+    {
+        if (!decimal.TryParse(line.DiscountPercentText, out var percent) || percent < 0 || percent > 100)
+        {
+            StatusMessage = "Enter a line discount between 0 and 100%.";
+            return;
+        }
+
+        if (percent > AppRuntime.Settings.MaxCashierDiscountPercent &&
+            AppRuntime.Session.CurrentUser?.Role != Roles.Admin)
+        {
+            var approved = await ShowApprovalAsync($"A {percent}% discount on {line.ArticleName} needs approval.");
+            if (!approved)
+            {
+                StatusMessage = "Line discount not applied — approval was not granted.";
+                return;
+            }
+        }
+
+        var amount = Math.Round(line.UnitPrice * line.Quantity * (percent / 100m), 2);
+        line.SetDiscountAmount(amount);
+        RaiseTotalsChanged();
+        StatusMessage = percent > 0
+            ? $"{percent}% discount applied to {line.ArticleName}."
+            : $"Discount removed from {line.ArticleName}.";
+    }
+
+    /// <summary>
+    /// Applies a whole-ticket discount typed into TicketDiscountPercentText, against
+    /// the post-line-discount Subtotal. Same approval gating as line discounts.
+    /// </summary>
+    private async Task ApplyTicketDiscountAsync()
+    {
+        if (!decimal.TryParse(TicketDiscountPercentText, out var percent) || percent < 0 || percent > 100)
+        {
+            StatusMessage = "Enter a ticket discount between 0 and 100%.";
+            return;
+        }
+
+        if (percent > AppRuntime.Settings.MaxCashierDiscountPercent &&
+            AppRuntime.Session.CurrentUser?.Role != Roles.Admin)
+        {
+            var approved = await ShowApprovalAsync($"A {percent}% discount on the whole ticket needs approval.");
+            if (!approved)
+            {
+                StatusMessage = "Ticket discount not applied — approval was not granted.";
+                return;
+            }
+        }
+
+        TicketDiscountAmount = Math.Round(Subtotal * (percent / 100m), 2);
+        RaiseTotalsChanged();
+        StatusMessage = percent > 0 ? $"{percent}% ticket discount applied." : "Ticket discount removed.";
+    }
+
+    private async Task<bool> ShowApprovalAsync(string reason)
+    {
+        var dialog = new ApprovalDialog(reason);
+        return OwnerWindow != null && await dialog.ShowDialog<bool>(OwnerWindow);
+    }
+
+    private async Task LoadProductsAsync()
+    {
+        try
+        {
+            var articles = await _articleService.GetAllAsync();
+
+            Products.Clear();
+            foreach (var a in articles) Products.Add(a);
+
+            Categories.Clear();
+            Categories.Add("All Products");
+            foreach (var cat in articles.Select(a => a.Category).Where(c => !string.IsNullOrWhiteSpace(c)).Distinct().OrderBy(c => c))
+                Categories.Add(cat);
+
+            ApplyFilter();
+            StatusMessage = $"{articles.Count} products loaded.";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Could not load products: {ex.Message}";
+        }
+    }
+
+    private async Task LoadCustomersAsync()
+    {
+        try
+        {
+            var customers = await _customerService.GetAllAsync();
+            Customers.Clear();
+            Customers.Add(new Customer { Id = 0, Name = "Walk-in Customer" });
+            foreach (var c in customers) Customers.Add(c);
+            SelectedCustomer = Customers.First();
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Could not load customers: {ex.Message}";
+        }
+    }
+
+    private void ApplyFilter()
+    {
+        FilteredProducts.Clear();
+
+        IEnumerable<Article> query = Products;
+
+        if (!string.IsNullOrWhiteSpace(SelectedCategory) && SelectedCategory != "All Products")
+            query = query.Where(a => a.Category == SelectedCategory);
+
+        if (!string.IsNullOrWhiteSpace(SearchText))
+        {
+            var text = SearchText.Trim();
+            query = query.Where(a =>
+                a.Name.Contains(text, StringComparison.OrdinalIgnoreCase) ||
+                a.Code.Contains(text, StringComparison.OrdinalIgnoreCase));
+        }
+
+        foreach (var article in query)
+            FilteredProducts.Add(article);
+    }
+
+    /// <summary>Single-tender checkout (the Cash/Card/Digital quick buttons).</summary>
+    private async Task CompleteSaleAsync(string paymentMethod)
+    {
+        if (CartItems.Count == 0) return;
+
+        IsBusy = true;
+        try
+        {
+            var sale = await PersistSaleAsync(paymentMethod);
+            if (sale is null) return; // StatusMessage already set
+
+            // A single Payment row too, so every sale — split or not — has a
+            // consistent record in Payments for reporting.
+            await AppRuntime.Payments.AddAsync(new Payment
+            {
+                SaleId = sale.Id,
+                Method = paymentMethod,
+                Amount = Total,
+                Change = 0m,
+                Reference = paymentMethod,
+                CreatedAt = DateTime.Now
+            });
+
+            FinishAfterSale(sale.TicketNumber, $"Sale {sale.TicketNumber} completed via {paymentMethod} — {Total:C}.");
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    /// <summary>Split/mixed-tender checkout (Cash amount + Card amount fields).</summary>
+    private async Task CompleteSplitSaleAsync()
+    {
+        if (CartItems.Count == 0) return;
+
+        var cash = ParsedCashTendered;
+        var card = ParsedCardTendered;
+        var tendered = cash + card;
+
+        if (tendered < Total)
+        {
+            StatusMessage = $"Tendered {tendered:C} is less than the total {Total:C}.";
+            return;
+        }
+
+        IsBusy = true;
+        try
+        {
+            var sale = await PersistSaleAsync("Mixed");
+            if (sale is null) return; // StatusMessage already set
+
+            var change = await AppRuntime.Payments.RecordPaymentsAsync(sale.Id, Total,
+                new Dictionary<string, decimal> { ["Cash"] = cash, ["Card"] = card });
+
+            CashTenderedText = "";
+            CardTenderedText = "";
+
+            FinishAfterSale(sale.TicketNumber,
+                $"Sale {sale.TicketNumber} completed (split) — {Total:C}. Change due: {change:C}.");
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    /// <summary>
+    /// The part shared by both checkout paths: build and persist the Sale and its
+    /// line items, decrement stock, print the receipt, and write the audit log.
+    /// Returns null (with StatusMessage explaining why) if the sale could not be
+    /// saved — neither caller should proceed to record payments/clear the cart
+    /// in that case.
+    /// </summary>
+    private async Task<Sale?> PersistSaleAsync(string paymentMethod)
+    {
+        var ticketNumber = await _saleService.GenerateNextTicketNumberAsync();
+
+        var sale = new Sale
+        {
+            TicketNumber = ticketNumber,
+            CustomerId = SelectedCustomer?.Id ?? 0,
+            SaleDate = DateTime.Now,
+            SubTotal = Subtotal,
+            Tax = Tax,
+            TotalAmount = Total,
+            TicketDiscountAmount = TicketDiscountAmount,
+            PaymentMethod = paymentMethod,
+            Status = "Completed"
+        };
+
+        foreach (var line in CartItems)
+        {
+            sale.LineItems.Add(new SaleLineItem
+            {
+                ArticleId = line.ArticleId,
+                ArticleName = line.ArticleName,
+                Quantity = line.Quantity,
+                UnitPrice = line.UnitPrice,
+                LineTotal = line.LineTotal,
+                Discount = line.DiscountAmount
+            });
+        }
+
+        var saleId = await _saleService.AddAsync(sale);
+        if (saleId == 0)
+        {
+            StatusMessage = "Could not save the sale. Check the database connection.";
+            return null;
+        }
+
+        foreach (var line in CartItems)
+        {
+            await _articleService.AdjustStockAsync(line.ArticleId, -line.Quantity);
+        }
+
+        // Best-effort extras: neither should be able to undo a sale that already
+        // succeeded, so a failure here is logged to StatusMessage but doesn't roll
+        // back the completed transaction — the caller overwrites StatusMessage with
+        // its own success message afterward regardless.
+        try
+        {
+            await AppRuntime.Receipts.CreateAndPrintAsync(sale);
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Sale saved, but the receipt could not be written: {ex.Message}";
+        }
+
+        await AppRuntime.Audit.WriteAsync(AppRuntime.Session.CurrentUser, "Sale", "Sale", ticketNumber);
+
+        return sale;
+    }
+
+    private void FinishAfterSale(string ticketNumber, string statusMessage)
+    {
+        LastTicketNumber = ticketNumber;
+        StatusMessage = statusMessage;
+
+        CartItems.Clear();
+        TicketDiscountAmount = 0;
+        TicketDiscountPercentText = "0";
+        RaiseTotalsChanged();
+        _ = LoadProductsAsync();
+    }
+
+    private void RaiseTotalsChanged()
+    {
+        this.RaisePropertyChanged(nameof(Subtotal));
+        this.RaisePropertyChanged(nameof(TaxableBase));
+        this.RaisePropertyChanged(nameof(Tax));
+        this.RaisePropertyChanged(nameof(Total));
+        RaiseSplitTenderChanged();
+    }
+
+    private void RaiseSplitTenderChanged()
+    {
+        this.RaisePropertyChanged(nameof(SplitTenderedTotal));
+        this.RaisePropertyChanged(nameof(SplitBalance));
+        this.RaisePropertyChanged(nameof(SplitStatusText));
+    }
+}

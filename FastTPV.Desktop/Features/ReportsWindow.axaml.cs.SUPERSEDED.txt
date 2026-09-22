@@ -1,0 +1,32 @@
+using Avalonia.Controls;
+using Avalonia.Interactivity;
+
+namespace FastTPV.Desktop.Features;
+
+public partial class ReportsWindow : Window
+{
+    public ReportsWindow()
+    {
+        InitializeComponent();
+        From.SelectedDate = DateTimeOffset.Now.Date.AddDays(-30);
+        To.SelectedDate = DateTimeOffset.Now.Date;
+        Opened += async (_, _) => await LoadAsync();
+    }
+
+    private async void Refresh(object? sender, RoutedEventArgs e) => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        var from = (From.SelectedDate ?? DateTimeOffset.Now.AddDays(-30)).Date;
+        var to = (To.SelectedDate ?? DateTimeOffset.Now).Date.AddDays(1).AddTicks(-1);
+
+        var sales = await AppRuntime.Reports.GetSalesAsync(from, to);
+        var low = await AppRuntime.Reports.GetLowStockAsync();
+
+        SalesList.ItemsSource = sales;
+        LowStockList.ItemsSource = low;
+        SalesTotal.Text = sales.Sum(s => s.TotalAmount).ToString("N2");
+        TransactionCount.Text = sales.Count.ToString();
+        LowStockCount.Text = low.Count.ToString();
+    }
+}

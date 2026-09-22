@@ -1,0 +1,162 @@
+using Avalonia.Controls;
+using Avalonia.Interactivity;
+using FastTPV.Core.Models;
+using System.Collections.ObjectModel;
+using System.Globalization;
+
+namespace FastTPV.Desktop.Features;
+
+public partial class CashDrawerWindow : Window
+{
+    private CashSession? _session;
+    private decimal _previewExpected;
+    private readonly ObservableCollection<CashMovement> _movements = new();
+
+    public CashDrawerWindow()
+    {
+        InitializeComponent();
+        MovementsList.ItemsSource = _movements;
+        Opened += async (_, _) => await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        var userId = AppRuntime.Session.CurrentUser?.UserId ?? 0;
+        _session = await AppRuntime.CashDrawer.GetOpenSessionAsync(userId);
+
+        if (_session is null)
+        {
+            OpenPanel.IsVisible = true;
+            SessionPanel.IsVisible = false;
+            return;
+        }
+
+        OpenPanel.IsVisible = false;
+        SessionPanel.IsVisible = true;
+        PreviewBox.IsVisible = false;
+
+        SessionInfo.Text = $"Session opened {_session.OpenedAt:g}";
+        FloatInfo.Text = $"Starting float: {_session.OpeningFloat:C}";
+
+        var movements = await AppRuntime.CashDrawer.GetMovementsAsync(_session.Id);
+        _movements.Clear();
+        foreach (var m in movements) _movements.Add(m);
+    }
+
+    private async void OpenSession(object? sender, RoutedEventArgs e)
+    {
+        OpenMessage.Text = "";
+
+        if (!decimal.TryParse(OpeningFloat.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out var floatAmount) || floatAmount < 0)
+        {
+            OpenMessage.Text = "Enter a valid starting float amount (0 or more).";
+            return;
+        }
+
+        var userId = AppRuntime.Session.CurrentUser?.UserId ?? 0;
+        var newId = await AppRuntime.CashDrawer.OpenAsync(userId, floatAmount);
+        if (newId == 0)
+        {
+            OpenMessage.Text = "Could not open the till session.";
+            return;
+        }
+
+        await AppRuntime.Audit.WriteAsync(AppRuntime.Session.CurrentUser, "OpenTill", "CashSession", floatAmount.ToString("C"));
+        await LoadAsync();
+    }
+
+    private async void CashIn(object? sender, RoutedEventArgs e) => await AddMovementAsync("In");
+
+    private async void CashOut(object? sender, RoutedEventArgs e) => await AddMovementAsync("Out");
+
+    private async Task AddMovementAsync(string type)
+    {
+        MovementMessage.Text = "";
+        if (_session is null) return;
+
+        if (!decimal.TryParse(MovementAmount.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out var amount) || amount <= 0)
+        {
+            MovementMessage.Text = "Enter a valid amount greater than zero.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(MovementReason.Text))
+        {
+            MovementMessage.Text = "A reason is required (e.g. 'banking drop', 'paid-out for supplies').";
+            return;
+        }
+
+        var ok = await AppRuntime.CashDrawer.AddMovementAsync(_session.Id, type, amount, MovementReason.Text.Trim());
+        if (!ok)
+        {
+            MovementMessage.Text = "Could not record the movement.";
+            return;
+        }
+
+        await AppRuntime.Audit.WriteAsync(AppRuntime.Session.CurrentUser, $"Cash{type}", "CashSession",
+            $"{amount:C} — {MovementReason.Text.Trim()}");
+
+        MovementAmount.Text = "";
+        MovementReason.Text = "";
+        await LoadAsync();
+    }
+
+    private async void PreviewClose(object? sender, RoutedEventArgs e)
+    {
+        CloseMessage.Text = "";
+        if (_session is null) return;
+
+        if (!decimal.TryParse(CountedCash.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out var counted) || counted < 0)
+        {
+            CloseMessage.Text = "Enter a valid counted cash amount (0 or more).";
+            return;
+        }
+
+        // Cash sales rung up during this session — only Completed sales count, so a
+        // sale that was voided during the same shift doesn't inflate the expected total.
+        var sales = await AppRuntime.Sales.GetByDateRangeAsync(_session.OpenedAt, DateTime.Now);
+        var cashSales = sales.Where(s => s.PaymentMethod == "Cash" && s.Status != "Cancelled").Sum(s => s.TotalAmount);
+
+        var movements = await AppRuntime.CashDrawer.GetMovementsAsync(_session.Id);
+        var cashIn = movements.Where(m => m.Type == "In").Sum(m => m.Amount);
+        var cashOut = movements.Where(m => m.Type == "Out").Sum(m => m.Amount);
+
+        var expected = _session.OpeningFloat + cashSales + cashIn - cashOut;
+        var variance = counted - expected;
+
+        _previewExpected = expected;
+
+        PreviewFloat.Text = _session.OpeningFloat.ToString("C");
+        PreviewCashSales.Text = cashSales.ToString("C");
+        PreviewCashIn.Text = cashIn.ToString("C");
+        PreviewCashOut.Text = cashOut.ToString("C");
+        PreviewExpected.Text = expected.ToString("C");
+        PreviewCounted.Text = counted.ToString("C");
+        PreviewVariance.Text = variance.ToString("C");
+        PreviewBox.IsVisible = true;
+    }
+
+    private async void ConfirmClose(object? sender, RoutedEventArgs e)
+    {
+        CloseMessage.Text = "";
+        if (_session is null) return;
+
+        if (!decimal.TryParse(CountedCash.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out var counted))
+        {
+            CloseMessage.Text = "Enter a valid counted cash amount.";
+            return;
+        }
+
+        var ok = await AppRuntime.CashDrawer.CloseAsync(_session.Id, counted, _previewExpected);
+        if (!ok)
+        {
+            CloseMessage.Text = "Could not close the till session.";
+            return;
+        }
+
+        await AppRuntime.Audit.WriteAsync(AppRuntime.Session.CurrentUser, "CloseTill", "CashSession",
+            $"Expected {_previewExpected:C}, counted {counted:C}, variance {(counted - _previewExpected):C}");
+
+        await LoadAsync();
+    }
+}

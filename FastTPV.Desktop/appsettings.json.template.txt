@@ -1,0 +1,72 @@
+{
+  "_comment_production": "For a real deployment, don't put the real DB password in ConnectionStrings.DefaultConnection below at all — set the environment variable FASTTPV_CONNECTION_STRING on the machine/service running FastTPV instead (e.g. in your systemd unit, Docker Compose env, or Windows service config). If that variable is set, it always overrides whatever is in this file, so the value below can stay a harmless placeholder.",
+  "ConnectionStrings": {
+    "DefaultConnection": "Server=localhost;Database=FastTPV;Uid=root;Pwd=your_password;Convert Zero Datetime=true;Allow Zero Datetime=true"
+  },
+  "Application": {
+    "Name": "FastTPV",
+    "Version": "1.0.0",
+    "Company": "Your Company Name",
+    "DebugMode": false
+  },
+  "Company": {
+    "BusinessName": "Your Company Name",
+    "TradeName": "",
+    "TaxId": "",
+    "AddressLine1": "",
+    "AddressLine2": "",
+    "City": "",
+    "PostalCode": "",
+    "Province": "",
+    "Country": "",
+    "Phone": "",
+    "Email": "",
+    "Website": "",
+    "ReceiptHeader": "",
+    "ReceiptFooter": "Thank you for your purchase!",
+    "LogoPath": ""
+  },
+  "Database": {
+    "Provider": "MySQL",
+    "AutoMigrate": true,
+    "ConnectionTimeout": 30
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft": "Warning",
+      "System": "Warning"
+    },
+    "FilePath": "Logs/fasttpv-.txt",
+    "RetainedFileCountLimit": 10
+  },
+  "Features": {
+    "EnableBiometricAuth": false,
+    "EnableAdvancedReporting": true,
+    "EnableMultiLanguage": false,
+    "EnableWebDashboard": false
+  },
+  "POS": {
+    "DefaultCurrency": "USD",
+    "DefaultTaxRate": 0.10,
+    "AutoLogoffMinutes": 15,
+    "SessionTimeout": 30,
+    "MaxCashierDiscountPercent": 15,
+    "ReceiptFormat": "80mm",
+    "PrinterName": "Default Printer",
+    "PrinterConnection": "None",
+    "PrinterIpAddress": "192.168.1.50",
+    "PrinterPort": 9100,
+    "PrinterCodePage": 16,
+    "PrinterConnectTimeoutMs": 3000,
+    "PrinterCutStyle": "Standard"
+  },
+  "Security": {
+    "RequireLogin": true,
+    "MinPasswordLength": 8,
+    "MaxFailedLoginAttempts": 5,
+    "LockoutMinutes": 15,
+    "SessionEncryption": true,
+    "EnableAuditLog": true
+  }
+}

@@ -1,0 +1,74 @@
+<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" x:Class="FastTPV.Desktop.Features.CashDrawerWindow" Width="640" Height="660" Title="Cash Drawer" WindowStartupLocation="CenterOwner">
+  <Grid RowDefinitions="Auto,*" Margin="24">
+    <TextBlock Text="Cash Drawer" FontSize="26" FontWeight="Bold" Margin="0,0,0,18"/>
+
+    <!-- Shown when there is no open session -->
+    <StackPanel x:Name="OpenPanel" Grid.Row="1" Spacing="12" IsVisible="False">
+      <TextBlock Text="No till session is open." FontWeight="Bold"/>
+      <TextBlock Text="Count the cash you're starting with and open a session before taking sales." Foreground="#64748B" TextWrapping="Wrap"/>
+      <TextBox x:Name="OpeningFloat" Watermark="Starting float amount" Margin="0,10,0,0"/>
+      <TextBlock x:Name="OpenMessage" Foreground="#B91C1C" TextWrapping="Wrap"/>
+      <Button Content="Open till" Click="OpenSession" Padding="16,8" Background="#2563EB" Foreground="White"/>
+    </StackPanel>
+
+    <!-- Shown when a session is open -->
+    <ScrollViewer x:Name="SessionPanel" Grid.Row="1" IsVisible="False">
+      <StackPanel Spacing="14">
+        <Border Background="#EFF6FF" Padding="16">
+          <Grid ColumnDefinitions="*,Auto">
+            <StackPanel>
+              <TextBlock x:Name="SessionInfo" FontWeight="Bold"/>
+              <TextBlock x:Name="FloatInfo" Foreground="#64748B"/>
+            </StackPanel>
+            <Button Grid.Column="1" Content="🔓 Kick drawer" Click="KickDrawer" Padding="12,6" VerticalAlignment="Center"/>
+          </Grid>
+        </Border>
+        <TextBlock x:Name="KickMessage" FontSize="12" Foreground="#64748B" TextWrapping="Wrap"/>
+
+        <TextBlock Text="Cash in / out" FontSize="16" FontWeight="Bold"/>
+        <Grid ColumnDefinitions="*,*,Auto,Auto" ColumnSpacing="8">
+          <TextBox x:Name="MovementAmount" Watermark="Amount"/>
+          <TextBox x:Name="MovementReason" Grid.Column="1" Watermark="Reason (e.g. banking drop, paid-out)"/>
+          <Button Grid.Column="2" Content="Cash In" Click="CashIn" Padding="12,6" Background="#16A34A" Foreground="White"/>
+          <Button Grid.Column="3" Content="Cash Out" Click="CashOut" Padding="12,6" Background="#DC2626" Foreground="White"/>
+        </Grid>
+        <TextBlock x:Name="MovementMessage" Foreground="#B91C1C" TextWrapping="Wrap"/>
+
+        <ListBox x:Name="MovementsList" Height="140">
+          <ListBox.ItemTemplate>
+            <DataTemplate>
+              <Grid ColumnDefinitions="70,*,90" Margin="6">
+                <TextBlock Text="{Binding Type}" FontWeight="Bold"/>
+                <TextBlock Grid.Column="1" Text="{Binding Reason}"/>
+                <TextBlock Grid.Column="2" Text="{Binding Amount}" HorizontalAlignment="Right"/>
+              </Grid>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+
+        <Separator Margin="0,6"/>
+
+        <TextBlock Text="Close till" FontSize="16" FontWeight="Bold"/>
+        <TextBlock Text="Count all the cash in the drawer (including the float) and enter it below." Foreground="#64748B" TextWrapping="Wrap"/>
+        <TextBox x:Name="CountedCash" Watermark="Counted cash total"/>
+        <Button Content="Preview close-out" Click="PreviewClose" Padding="16,8"/>
+
+        <Border x:Name="PreviewBox" Background="#F8FAFC" Padding="16" IsVisible="False">
+          <StackPanel Spacing="4">
+            <Grid ColumnDefinitions="*,Auto"><TextBlock Text="Opening float"/><TextBlock x:Name="PreviewFloat" Grid.Column="1"/></Grid>
+            <Grid ColumnDefinitions="*,Auto"><TextBlock Text="Cash sales this session"/><TextBlock x:Name="PreviewCashSales" Grid.Column="1"/></Grid>
+            <Grid ColumnDefinitions="*,Auto"><TextBlock Text="Cash in"/><TextBlock x:Name="PreviewCashIn" Grid.Column="1"/></Grid>
+            <Grid ColumnDefinitions="*,Auto"><TextBlock Text="Cash out"/><TextBlock x:Name="PreviewCashOut" Grid.Column="1"/></Grid>
+            <Separator Margin="0,4"/>
+            <Grid ColumnDefinitions="*,Auto"><TextBlock Text="Expected" FontWeight="Bold"/><TextBlock x:Name="PreviewExpected" Grid.Column="1" FontWeight="Bold"/></Grid>
+            <Grid ColumnDefinitions="*,Auto"><TextBlock Text="Counted"/><TextBlock x:Name="PreviewCounted" Grid.Column="1"/></Grid>
+            <Grid ColumnDefinitions="*,Auto"><TextBlock Text="Variance" FontWeight="Bold"/><TextBlock x:Name="PreviewVariance" Grid.Column="1" FontWeight="Bold"/></Grid>
+            <Button Content="Confirm and close till" Click="ConfirmClose" Padding="16,8" Background="#DC2626" Foreground="White" Margin="0,10,0,0"/>
+          </StackPanel>
+        </Border>
+
+        <TextBlock x:Name="CloseMessage" Foreground="#B91C1C" TextWrapping="Wrap"/>
+      </StackPanel>
+    </ScrollViewer>
+  </Grid>
+</Window>

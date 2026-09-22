@@ -1,0 +1,90 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="FastTPV.Desktop.Views.MainWindow"
+        xmlns:vm="using:FastTPV.Desktop.ViewModels"
+        x:DataType="vm:MainWindowViewModel"
+        Icon="/Assets/app.ico"
+        Title="FastTPV - Modern POS Management System"
+        WindowState="Maximized"
+        Background="#F5F5F5">
+
+    <DockPanel>
+        <!-- Top Menu Bar -->
+        <Border DockPanel.Dock="Top" Background="#2D2D2D" Padding="0" Height="50">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="20,0">
+                <TextBlock Text="FastTPV" FontSize="20" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
+                <TextBlock Text="v1.0" FontSize="12" Foreground="#B0B0B0" VerticalAlignment="Center" Margin="10,0,0,0"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Left Sidebar Navigation -->
+        <Border DockPanel.Dock="Left" Background="#3C3C3C" Width="250" BorderThickness="1,0,0,0" BorderBrush="#1a1a1a">
+            <StackPanel>
+                <Button Content="🛒 Sales / POS" Padding="20,15" Foreground="White" Background="Transparent"
+                        BorderThickness="0" Cursor="Hand" HorizontalContentAlignment="Left"
+                        HorizontalAlignment="Stretch" Command="{Binding OpenSalesCommand}"/>
+                <Button Content="📦 Inventory" Padding="20,15" Foreground="White" Background="Transparent"
+                        BorderThickness="0" Cursor="Hand" HorizontalContentAlignment="Left"
+                        HorizontalAlignment="Stretch" Command="{Binding OpenInventoryCommand}"/>
+                <Separator Background="#555" Margin="0,20,0,0"/>
+                <Button Content="🚪 Exit" Padding="20,15" Foreground="#FF6B6B" Background="Transparent"
+                        BorderThickness="0" Cursor="Hand" HorizontalContentAlignment="Left"
+                        HorizontalAlignment="Stretch" VerticalAlignment="Bottom" Command="{Binding ExitCommand}"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Main Content Area -->
+        <Grid RowDefinitions="*,50" Margin="20">
+            <!-- Content Panel -->
+            <StackPanel Grid.Row="0" VerticalAlignment="Center" HorizontalAlignment="Center">
+                <TextBlock Text="Welcome to FastTPV" FontSize="32" FontWeight="Bold" Foreground="#2D2D2D" Margin="0,0,0,20" TextAlignment="Center"/>
+                <TextBlock Text="Modern POS Management System" FontSize="18" Foreground="#666" TextAlignment="Center" Margin="0,0,0,40"/>
+
+                <WrapPanel HorizontalAlignment="Center">
+                    <!-- Sales Card -->
+                    <Button Command="{Binding OpenSalesCommand}" Cursor="Hand" Margin="10"
+                            Background="Transparent" BorderThickness="0" Padding="0">
+                        <Button.Styles>
+                            <Style Selector="Border.card:pointerover">
+                                <Setter Property="Background" Value="#F5F5F5"/>
+                            </Style>
+                        </Button.Styles>
+                        <Border Classes="card" Background="White" BorderThickness="1" BorderBrush="#E0E0E0" CornerRadius="8" Padding="30" Width="200">
+                            <StackPanel>
+                                <TextBlock Text="🛒" FontSize="48" TextAlignment="Center"/>
+                                <TextBlock Text="New Sale" FontSize="16" FontWeight="Bold" Foreground="#2D2D2D" TextAlignment="Center" Margin="0,10,0,0"/>
+                                <TextBlock Text="Create a new transaction" FontSize="12" Foreground="#999" TextAlignment="Center" Margin="0,5,0,0"/>
+                            </StackPanel>
+                        </Border>
+                    </Button>
+
+                    <!-- Inventory Card -->
+                    <Button Command="{Binding OpenInventoryCommand}" Cursor="Hand" Margin="10"
+                            Background="Transparent" BorderThickness="0" Padding="0">
+                        <Button.Styles>
+                            <Style Selector="Border.card:pointerover">
+                                <Setter Property="Background" Value="#F5F5F5"/>
+                            </Style>
+                        </Button.Styles>
+                        <Border Classes="card" Background="White" BorderThickness="1" BorderBrush="#E0E0E0" CornerRadius="8" Padding="30" Width="200">
+                            <StackPanel>
+                                <TextBlock Text="📦" FontSize="48" TextAlignment="Center"/>
+                                <TextBlock Text="Inventory" FontSize="16" FontWeight="Bold" Foreground="#2D2D2D" TextAlignment="Center" Margin="0,10,0,0"/>
+                                <TextBlock Text="Manage stock levels" FontSize="12" Foreground="#999" TextAlignment="Center" Margin="0,5,0,0"/>
+                            </StackPanel>
+                        </Border>
+                    </Button>
+                </WrapPanel>
+            </StackPanel>
+
+            <!-- Status Bar -->
+            <Border Grid.Row="1" Background="#F0F0F0" BorderThickness="0,1,0,0" BorderBrush="#E0E0E0" Padding="20,0">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding StatusMessage, StringFormat='Status: {0}'}" Foreground="#666" FontSize="12"/>
+                    <Separator Width="1" Background="#D0D0D0" Margin="15,0"/>
+                    <TextBlock Text="{Binding CurrentDateTime, StringFormat='{}{0:g}'}" Foreground="#666" FontSize="12"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </DockPanel>
+</Window>

@@ -1,0 +1,101 @@
+using Avalonia.Controls;
+using FastTPV.Desktop.Features;
+using FastTPV.Desktop.Views;
+using ReactiveUI;
+using System;
+using System.Reactive;
+using System.Reactive.Linq;
+
+namespace FastTPV.Desktop.ViewModels;
+
+public class MainWindowViewModel : ViewModelBase
+{
+    private DateTime _currentDateTime;
+    public DateTime CurrentDateTime
+    {
+        get => _currentDateTime;
+        set => this.RaiseAndSetIfChanged(ref _currentDateTime, value);
+    }
+
+    private string _statusMessage = "Ready";
+    public string StatusMessage
+    {
+        get => _statusMessage;
+        set => this.RaiseAndSetIfChanged(ref _statusMessage, value);
+    }
+
+    /// <summary>
+    /// Set once when MainWindow is constructed, right after a successful login —
+    /// neither needs to be reactive since they won't change during this window's
+    /// lifetime (logging out closes this window and shows a fresh LoginWindow).
+    /// </summary>
+    public string CurrentUserDisplayName => AppRuntime.Session.CurrentUser?.DisplayName ?? "Unknown";
+    public bool IsAdmin => AppRuntime.Session.CurrentUser?.Role == Roles.Admin;
+
+    public ReactiveCommand<Unit, Unit> OpenSalesCommand { get; }
+    public ReactiveCommand<Unit, Unit> OpenInventoryCommand { get; }
+    public ReactiveCommand<Unit, Unit> OpenCustomersCommand { get; }
+    public ReactiveCommand<Unit, Unit> OpenReportsCommand { get; }
+    public ReactiveCommand<Unit, Unit> OpenUsersCommand { get; }
+    public ReactiveCommand<Unit, Unit> ChangePasswordCommand { get; }
+    public ReactiveCommand<Unit, Unit> ExitCommand { get; }
+
+    public MainWindowViewModel()
+    {
+        CurrentDateTime = DateTime.Now;
+        Observable.Interval(TimeSpan.FromSeconds(1))
+            .ObserveOn(RxApp.MainThreadScheduler)
+            .Subscribe(_ => CurrentDateTime = DateTime.Now);
+
+        OpenSalesCommand = ReactiveCommand.Create(() =>
+        {
+            StatusMessage = "Opening Sales / POS...";
+            var vm = new SalesWindowViewModel(AppRuntime.Articles, AppRuntime.Sales, AppRuntime.Customers, AppRuntime.Settings.DefaultTaxRate);
+            new SalesWindow(vm).Show();
+            StatusMessage = "Ready";
+        });
+
+        OpenInventoryCommand = ReactiveCommand.Create(() =>
+        {
+            StatusMessage = "Opening Inventory...";
+            var vm = new InventoryWindowViewModel(AppRuntime.Articles);
+            new InventoryWindow(vm).Show();
+            StatusMessage = "Ready";
+        });
+
+        OpenCustomersCommand = ReactiveCommand.Create(() =>
+        {
+            StatusMessage = "Opening Customers...";
+            new CustomerWindow().Show();
+            StatusMessage = "Ready";
+        });
+
+        OpenReportsCommand = ReactiveCommand.Create(() =>
+        {
+            StatusMessage = "Opening Reports...";
+            new ReportsWindow().Show();
+            StatusMessage = "Ready";
+        });
+
+        OpenUsersCommand = ReactiveCommand.Create(() =>
+        {
+            StatusMessage = "Opening Users...";
+            new UsersWindow().Show();
+            StatusMessage = "Ready";
+        });
+
+        ChangePasswordCommand = ReactiveCommand.Create(() =>
+        {
+            new ChangePasswordWindow().Show();
+        });
+
+        ExitCommand = ReactiveCommand.Create(() =>
+        {
+            if (Avalonia.Application.Current?.ApplicationLifetime is
+                Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop)
+            {
+                desktop.Shutdown();
+            }
+        });
+    }
+}

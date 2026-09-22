@@ -1,0 +1,10 @@
+<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" x:Class="FastTPV.Desktop.Features.LoginWindow" Width="420" Height="360" CanResize="False" WindowStartupLocation="CenterScreen" Title="FastTPV - Sign in">
+  <StackPanel Margin="40" Spacing="14">
+    <TextBlock Text="FastTPV" FontSize="30" FontWeight="Bold" Foreground="#1F2937"/>
+    <TextBlock Text="Sign in to continue" Foreground="#64748B"/>
+    <TextBox x:Name="UserName" Watermark="Username" Margin="0,18,0,0"/>
+    <TextBox x:Name="Password" Watermark="Password" PasswordChar="*"/>
+    <TextBlock x:Name="Message" Foreground="#B91C1C" TextWrapping="Wrap"/>
+    <Button Content="Sign in" Click="SignIn" HorizontalContentAlignment="Center" Padding="12" Background="#2563EB" Foreground="White"/>
+  </StackPanel>
+</Window>

@@ -1,0 +1,84 @@
+using Serilog;
+
+namespace FastTPV.Core.Data;
+
+/// <summary>
+/// Creates the FastTPV schema on first run so the app is usable against an empty
+/// database — you only need to CREATE DATABASE FastTPV; the tables are created here.
+/// </summary>
+public static class DatabaseInitializer
+{
+    private static readonly ILogger Logger = Log.ForContext(typeof(DatabaseInitializer));
+
+    public static async Task EnsureSchemaAsync(DatabaseContext db)
+    {
+        var statements = new[]
+        {
+            @"CREATE TABLE IF NOT EXISTS Articles (
+                Id INT AUTO_INCREMENT PRIMARY KEY,
+                Code VARCHAR(50) UNIQUE NOT NULL,
+                Name VARCHAR(255) NOT NULL,
+                Description TEXT,
+                Price DECIMAL(10, 2) NOT NULL DEFAULT 0,
+                CostPrice DECIMAL(10, 2) NOT NULL DEFAULT 0,
+                StockLevel INT NOT NULL DEFAULT 0,
+                MinimumStock INT NOT NULL DEFAULT 0,
+                Category VARCHAR(100),
+                IsActive BOOLEAN NOT NULL DEFAULT TRUE,
+                CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+                UpdatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX(Code), INDEX(Category)
+            )",
+            @"CREATE TABLE IF NOT EXISTS Customers (
+                Id INT AUTO_INCREMENT PRIMARY KEY,
+                Code VARCHAR(50) UNIQUE NOT NULL,
+                Name VARCHAR(255) NOT NULL,
+                Email VARCHAR(255),
+                Phone VARCHAR(20),
+                Address VARCHAR(255),
+                City VARCHAR(100),
+                ZipCode VARCHAR(10),
+                TaxId VARCHAR(50),
+                CreditLimit DECIMAL(10, 2) NOT NULL DEFAULT 0,
+                CurrentDebt DECIMAL(10, 2) NOT NULL DEFAULT 0,
+                IsActive BOOLEAN NOT NULL DEFAULT TRUE,
+                CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+                UpdatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX(Code), INDEX(Email)
+            )",
+            @"CREATE TABLE IF NOT EXISTS Sales (
+                Id INT AUTO_INCREMENT PRIMARY KEY,
+                TicketNumber VARCHAR(50) UNIQUE NOT NULL,
+                CustomerId INT NULL,
+                SaleDate DATETIME NOT NULL,
+                SubTotal DECIMAL(10, 2) NOT NULL DEFAULT 0,
+                Tax DECIMAL(10, 2) NOT NULL DEFAULT 0,
+                TotalAmount DECIMAL(10, 2) NOT NULL DEFAULT 0,
+                PaymentMethod VARCHAR(50),
+                Status VARCHAR(20) NOT NULL DEFAULT 'Completed',
+                Notes TEXT,
+                SalesmanId INT NULL,
+                CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+                INDEX(TicketNumber), INDEX(SaleDate)
+            )",
+            @"CREATE TABLE IF NOT EXISTS SaleLineItems (
+                Id INT AUTO_INCREMENT PRIMARY KEY,
+                SaleId INT NOT NULL,
+                ArticleId INT NOT NULL,
+                ArticleName VARCHAR(255),
+                Quantity INT NOT NULL,
+                UnitPrice DECIMAL(10, 2) NOT NULL,
+                LineTotal DECIMAL(10, 2) NOT NULL,
+                Discount DECIMAL(10, 2) NOT NULL DEFAULT 0,
+                INDEX(SaleId)
+            )"
+        };
+
+        foreach (var statement in statements)
+        {
+            await db.ExecuteNonQueryAsync(statement);
+        }
+
+        Logger.Information("Database schema verified/created");
+    }
+}

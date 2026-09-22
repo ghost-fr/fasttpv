@@ -1,0 +1,93 @@
+using Avalonia.Controls;
+using Avalonia.Interactivity;
+using FastTPV.Core.Models;
+
+namespace FastTPV.Desktop.Features;
+
+public partial class ReportsWindow : Window
+{
+    public ReportsWindow()
+    {
+        InitializeComponent();
+        From.SelectedDate = DateTimeOffset.Now.Date.AddDays(-30);
+        To.SelectedDate = DateTimeOffset.Now.Date;
+        Opened += async (_, _) => await LoadAsync();
+    }
+
+    private async void Refresh(object? sender, RoutedEventArgs e) => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        var from = (From.SelectedDate ?? DateTimeOffset.Now.AddDays(-30)).Date;
+        var to = (To.SelectedDate ?? DateTimeOffset.Now).Date.AddDays(1).AddTicks(-1);
+
+        var sales = await AppRuntime.Reports.GetSalesAsync(from, to);
+        var low = await AppRuntime.Reports.GetLowStockAsync();
+
+        SalesList.ItemsSource = sales;
+        LowStockList.ItemsSource = low;
+        SalesTotal.Text = sales.Where(s => s.Status != "Cancelled").Sum(s => s.TotalAmount).ToString("N2");
+        TransactionCount.Text = sales.Count(s => s.Status != "Cancelled").ToString();
+        LowStockCount.Text = low.Count.ToString();
+
+        // Register Summary (X/Z Report) — same From/To range as the cards above,
+        // so one Refresh keeps everything on this screen in sync.
+        var summary = await AppRuntime.Reports.GetSalesSummaryAsync(from, to);
+        SummaryGross.Text = summary.GrossSubtotal.ToString("N2");
+        SummaryDiscount.Text = summary.TotalDiscount.ToString("N2");
+        SummaryTax.Text = summary.TotalTax.ToString("N2");
+        SummaryNet.Text = summary.NetTotal.ToString("N2");
+
+        var breakdown = await AppRuntime.Reports.GetPaymentMethodBreakdownAsync(from, to);
+        PaymentBreakdownList.ItemsSource = breakdown;
+    }
+
+    private async void ReprintSale(object? sender, RoutedEventArgs e)
+    {
+        if ((sender as Button)?.DataContext is not Sale sale) return;
+
+        Message.Text = "";
+        try
+        {
+            var path = await AppRuntime.Receipts.CreateAndPrintAsync(sale);
+            await AppRuntime.Audit.WriteAsync(AppRuntime.Session.CurrentUser, "Reprint", "Sale", sale.TicketNumber);
+            Message.Text = $"Reprinted {sale.TicketNumber} (saved to {path}).";
+        }
+        catch (Exception ex)
+        {
+            Message.Text = $"Could not reprint {sale.TicketNumber}: {ex.Message}";
+        }
+    }
+
+    private async void VoidSale(object? sender, RoutedEventArgs e)
+    {
+        if ((sender as Button)?.DataContext is not Sale sale) return;
+
+        Message.Text = "";
+
+        if (sale.Status == "Cancelled")
+        {
+            Message.Text = $"{sale.TicketNumber} is already voided.";
+            return;
+        }
+
+        var ok = await AppRuntime.Sales.CancelAsync(sale.Id);
+        if (!ok)
+        {
+            Message.Text = $"Could not void {sale.TicketNumber}.";
+            return;
+        }
+
+        // Voiding a sale returns its items to stock — the sale already deducted
+        // stock at checkout, so this is the mirror-image adjustment.
+        foreach (var line in sale.LineItems)
+        {
+            await AppRuntime.Articles.AdjustStockAsync(line.ArticleId, line.Quantity);
+        }
+
+        await AppRuntime.Audit.WriteAsync(AppRuntime.Session.CurrentUser, "Void", "Sale", sale.TicketNumber);
+        Message.Text = $"{sale.TicketNumber} voided and stock restored.";
+
+        await LoadAsync();
+    }
+}

@@ -1,0 +1,2 @@
+C:\Users\munir\Desktop\FastTPV-ProductionReady\FastTPV.Desktop\obj\Debug\net8.0\FastTPV.Desktop.csproj.AssemblyReference.cache
+C:\Users\munir\Desktop\FastTPV-ProductionReady\FastTPV.Desktop\obj\Debug\net8.0\Avalonia\Resources.Inputs.cache

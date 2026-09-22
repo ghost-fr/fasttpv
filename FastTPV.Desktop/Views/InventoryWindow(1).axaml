@@ -1,0 +1,117 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:FastTPV.Desktop.ViewModels"
+        xmlns:dg="using:Avalonia.Controls"
+        x:Class="FastTPV.Desktop.Views.InventoryWindow"
+        x:DataType="vm:InventoryWindowViewModel"
+        Title="Inventory Management"
+        WindowState="Maximized"
+        Background="#F5F5F5">
+
+  <Grid RowDefinitions="60,*,30">
+    <!-- Header -->
+    <Border Grid.Row="0" Background="#2D2D2D" Padding="20,0">
+      <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+        <TextBlock Text="📦 Inventory Management" FontSize="18" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
+        <Button Content="🔄 Refresh" Margin="20,0,0,0" Padding="12,6" Command="{Binding RefreshCommand}"/>
+      </StackPanel>
+    </Border>
+
+    <Grid Grid.Row="1" ColumnDefinitions="*,350" Margin="15">
+      <!-- Left: Filter + Grid -->
+      <DockPanel Grid.Column="0" Margin="0,0,15,0">
+        <TextBox DockPanel.Dock="Top" Watermark="Search by name, code, or category..." Padding="10" Margin="0,0,0,10"
+                  Text="{Binding SearchText}"/>
+
+        <DataGrid ItemsSource="{Binding FilteredArticles}" SelectedItem="{Binding SelectedArticle}"
+                  AutoGenerateColumns="False" IsReadOnly="True" GridLinesVisibility="Horizontal"
+                  Background="White" BorderThickness="1" BorderBrush="#E0E0E0">
+          <DataGrid.Columns>
+            <DataGridTextColumn Header="Code" Binding="{Binding Code}" Width="100"/>
+            <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="*"/>
+            <DataGridTextColumn Header="Category" Binding="{Binding Category}" Width="140"/>
+            <DataGridTextColumn Header="Price" Binding="{Binding Price, StringFormat='{}{0:C}'}" Width="100"/>
+            <DataGridTextColumn Header="Stock" Binding="{Binding StockLevel}" Width="80"/>
+            <DataGridTextColumn Header="Min" Binding="{Binding MinimumStock}" Width="70"/>
+          </DataGrid.Columns>
+        </DataGrid>
+      </DockPanel>
+
+      <!-- Right: Add / Edit Form + Stock Adjustment -->
+      <ScrollViewer Grid.Column="1">
+        <StackPanel Spacing="15">
+          <Border Background="White" BorderThickness="1" BorderBrush="#E0E0E0" CornerRadius="8" Padding="20">
+            <StackPanel Spacing="8">
+              <TextBlock Text="Add / Edit Product" FontWeight="Bold" FontSize="16" Margin="0,0,0,10"/>
+
+              <TextBlock Text="Code"/>
+              <TextBox Text="{Binding EditCode}" Padding="8"/>
+
+              <TextBlock Text="Name"/>
+              <TextBox Text="{Binding EditName}" Padding="8"/>
+
+              <TextBlock Text="Category"/>
+              <TextBox Text="{Binding EditCategory}" Padding="8"/>
+
+              <Grid ColumnDefinitions="*,*" Margin="0,4,0,0">
+                <StackPanel Grid.Column="0" Margin="0,0,5,0">
+                  <TextBlock Text="Price"/>
+                  <NumericUpDown Value="{Binding EditPrice}" FormatString="C" Minimum="0" Padding="4"/>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Margin="5,0,0,0">
+                  <TextBlock Text="Cost Price"/>
+                  <NumericUpDown Value="{Binding EditCostPrice}" FormatString="C" Minimum="0" Padding="4"/>
+                </StackPanel>
+              </Grid>
+
+              <Grid ColumnDefinitions="*,*" Margin="0,4,0,0">
+                <StackPanel Grid.Column="0" Margin="0,0,5,0">
+                  <TextBlock Text="Stock Level"/>
+                  <NumericUpDown Value="{Binding EditStockLevel}" Minimum="0" Padding="4"/>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Margin="5,0,0,0">
+                  <TextBlock Text="Minimum Stock"/>
+                  <NumericUpDown Value="{Binding EditMinimumStock}" Minimum="0" Padding="4"/>
+                </StackPanel>
+              </Grid>
+
+              <StackPanel Orientation="Horizontal" Margin="0,15,0,0" Spacing="10">
+                <Button Content="New" Padding="16,8" Command="{Binding NewArticleCommand}"/>
+                <Button Content="Save" Padding="16,8" Background="#4CAF50" Foreground="White" Command="{Binding SaveCommand}"/>
+                <Button Content="Delete" Padding="16,8" Background="#FF5252" Foreground="White" Command="{Binding DeleteCommand}"/>
+              </StackPanel>
+            </StackPanel>
+          </Border>
+
+          <!-- Manual stock adjustment: separate from the edit form above so a quick
+               +/- correction with a reason doesn't require touching (and risking a typo
+               in) the product's other fields. Disabled implicitly until a product is
+               selected and a non-zero quantity is entered (see AdjustStockCommand's
+               CanExecute). -->
+          <Border Background="White" BorderThickness="1" BorderBrush="#E0E0E0" CornerRadius="8" Padding="20">
+            <StackPanel Spacing="8">
+              <TextBlock Text="Adjust Stock" FontWeight="Bold" FontSize="16" Margin="0,0,0,4"/>
+              <TextBlock Text="{Binding SelectedArticle.Name, StringFormat='Selected: {0}'}" FontSize="12" Foreground="#666" Margin="0,0,0,6"/>
+
+              <TextBlock Text="Quantity (use a negative number to remove stock)"/>
+              <NumericUpDown Value="{Binding AdjustQuantityDelta}" Padding="4"/>
+
+              <TextBlock Text="Reason" Margin="0,6,0,0"/>
+              <TextBox Text="{Binding AdjustReason}" Watermark="e.g. Damaged, Recount, Received off-book" Padding="8"/>
+
+              <Button Content="Apply Adjustment" Padding="16,8" Margin="0,10,0,0"
+                      Background="#7C3AED" Foreground="White"
+                      HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                      Command="{Binding AdjustStockCommand}"/>
+            </StackPanel>
+          </Border>
+        </StackPanel>
+      </ScrollViewer>
+    </Grid>
+
+    <!-- Status Bar -->
+    <Border Grid.Row="2" Background="#F0F0F0" BorderThickness="0,1,0,0" BorderBrush="#E0E0E0" Padding="15,0">
+      <TextBlock Text="{Binding StatusMessage}" Foreground="#666" FontSize="12" VerticalAlignment="Center"/>
+    </Border>
+  </Grid>
+</Window>

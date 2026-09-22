@@ -1,0 +1,281 @@
+using FastTPV.Core.Data;
+using FastTPV.Core.Interfaces;
+using FastTPV.Core.Models;
+using MySql.Data.MySqlClient;
+using Serilog;
+
+namespace FastTPV.Core.Services;
+
+/// <summary>
+/// Service for managing sales transactions
+/// </summary>
+public class SaleService : ISaleRepository
+{
+    private readonly DatabaseContext _db;
+    private static readonly ILogger Logger = Log.ForContext<SaleService>();
+
+    public SaleService(DatabaseContext db)
+    {
+        _db = db;
+    }
+
+    public async Task<Sale?> GetByIdAsync(int id)
+    {
+        try
+        {
+            var query = "SELECT * FROM Sales WHERE Id = @Id";
+            var results = await _db.ExecuteQueryAsync(query, new MySqlParameter("@Id", id));
+
+            if (results.Count == 0)
+                return null;
+
+            var sale = MapToSale(results[0]);
+            await LoadLineItemsAsync(sale);
+            return sale;
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Error getting sale by id: {Id}", id);
+            return null;
+        }
+    }
+
+    public async Task<Sale?> GetByTicketNumberAsync(string ticketNumber)
+    {
+        try
+        {
+            var query = "SELECT * FROM Sales WHERE TicketNumber = @TicketNumber";
+            var results = await _db.ExecuteQueryAsync(query, new MySqlParameter("@TicketNumber", ticketNumber));
+
+            if (results.Count == 0)
+                return null;
+
+            var sale = MapToSale(results[0]);
+            await LoadLineItemsAsync(sale);
+            return sale;
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Error getting sale by ticket number: {TicketNumber}", ticketNumber);
+            return null;
+        }
+    }
+
+    public async Task<List<Sale>> GetByDateRangeAsync(DateTime startDate, DateTime endDate)
+    {
+        try
+        {
+            var query = @"SELECT * FROM Sales WHERE SaleDate >= @StartDate AND SaleDate <= @EndDate
+                ORDER BY SaleDate DESC";
+            var results = await _db.ExecuteQueryAsync(query,
+                new MySqlParameter("@StartDate", startDate),
+                new MySqlParameter("@EndDate", endDate));
+
+            var sales = new List<Sale>();
+            foreach (var row in results)
+            {
+                var sale = MapToSale(row);
+                await LoadLineItemsAsync(sale);
+                sales.Add(sale);
+            }
+            return sales;
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Error getting sales by date range");
+            return new List<Sale>();
+        }
+    }
+
+    /// <summary>
+    /// Generates the next sequential ticket number, e.g. TKT-000123, based on the
+    /// highest existing numeric suffix. Falls back to TKT-000001 on an empty table.
+    /// </summary>
+    public async Task<string> GenerateNextTicketNumberAsync()
+    {
+        try
+        {
+            var result = await _db.ExecuteScalarAsync(
+                "SELECT MAX(CAST(SUBSTRING(TicketNumber, 5) AS UNSIGNED)) FROM Sales WHERE TicketNumber LIKE 'TKT-%'");
+
+            var next = (result == null || result == DBNull.Value) ? 1 : Convert.ToInt64(result) + 1;
+            return $"TKT-{next:D6}";
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Error generating ticket number, falling back to timestamp-based number");
+            return $"TKT-{DateTime.Now:yyyyMMddHHmmss}";
+        }
+    }
+
+    /// <summary>
+    /// Persists a sale together with its line items in one call. Sets sale.Id to the
+    /// real generated primary key before writing line items, so SaleLineItems.SaleId
+    /// is always correct.
+    /// </summary>
+    public async Task<int> AddAsync(Sale sale)
+    {
+        try
+        {
+            var query = @"INSERT INTO Sales (TicketNumber, CustomerId, SaleDate, SubTotal, Tax,
+                TotalAmount, PaymentMethod, Status, Notes, SalesmanId, CreatedAt)
+                VALUES (@TicketNumber, @CustomerId, @SaleDate, @SubTotal, @Tax,
+                @TotalAmount, @PaymentMethod, @Status, @Notes, @SalesmanId, @CreatedAt)";
+
+            var newId = await _db.ExecuteInsertAsync(query,
+                new MySqlParameter("@TicketNumber", sale.TicketNumber),
+                new MySqlParameter("@CustomerId", sale.CustomerId == 0 ? DBNull.Value : sale.CustomerId),
+                new MySqlParameter("@SaleDate", sale.SaleDate),
+                new MySqlParameter("@SubTotal", sale.SubTotal),
+                new MySqlParameter("@Tax", sale.Tax),
+                new MySqlParameter("@TotalAmount", sale.TotalAmount),
+                new MySqlParameter("@PaymentMethod", sale.PaymentMethod),
+                new MySqlParameter("@Status", sale.Status),
+                new MySqlParameter("@Notes", sale.Notes ?? string.Empty),
+                new MySqlParameter("@SalesmanId", sale.SalesmanId == 0 ? DBNull.Value : sale.SalesmanId),
+                new MySqlParameter("@CreatedAt", DateTime.Now));
+
+            sale.Id = (int)newId;
+
+            foreach (var lineItem in sale.LineItems)
+            {
+                lineItem.SaleId = sale.Id;
+                await AddLineItemAsync(sale.Id, lineItem);
+            }
+
+            Logger.Information("Sale added successfully: {TicketNumber} (Id {Id})", sale.TicketNumber, sale.Id);
+            return sale.Id;
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Error adding sale");
+            return 0;
+        }
+    }
+
+    public async Task<bool> UpdateAsync(Sale sale)
+    {
+        try
+        {
+            var query = @"UPDATE Sales SET CustomerId = @CustomerId, SaleDate = @SaleDate,
+                SubTotal = @SubTotal, Tax = @Tax, TotalAmount = @TotalAmount,
+                PaymentMethod = @PaymentMethod, Status = @Status, Notes = @Notes,
+                SalesmanId = @SalesmanId WHERE Id = @Id";
+
+            var result = await _db.ExecuteNonQueryAsync(query,
+                new MySqlParameter("@CustomerId", sale.CustomerId == 0 ? DBNull.Value : sale.CustomerId),
+                new MySqlParameter("@SaleDate", sale.SaleDate),
+                new MySqlParameter("@SubTotal", sale.SubTotal),
+                new MySqlParameter("@Tax", sale.Tax),
+                new MySqlParameter("@TotalAmount", sale.TotalAmount),
+                new MySqlParameter("@PaymentMethod", sale.PaymentMethod),
+                new MySqlParameter("@Status", sale.Status),
+                new MySqlParameter("@Notes", sale.Notes ?? string.Empty),
+                new MySqlParameter("@SalesmanId", sale.SalesmanId == 0 ? DBNull.Value : sale.SalesmanId),
+                new MySqlParameter("@Id", sale.Id));
+
+            Logger.Information("Sale updated successfully: {SaleId}", sale.Id);
+            return result > 0;
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Error updating sale: {SaleId}", sale.Id);
+            return false;
+        }
+    }
+
+    public async Task<bool> CancelAsync(int saleId)
+    {
+        try
+        {
+            var query = "UPDATE Sales SET Status = 'Cancelled' WHERE Id = @Id";
+            var result = await _db.ExecuteNonQueryAsync(query, new MySqlParameter("@Id", saleId));
+            Logger.Information("Sale cancelled: {SaleId}", saleId);
+            return result > 0;
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Error cancelling sale: {SaleId}", saleId);
+            return false;
+        }
+    }
+
+    private async Task LoadLineItemsAsync(Sale sale)
+    {
+        try
+        {
+            var query = @"SELECT * FROM SaleLineItems WHERE SaleId = @SaleId";
+            var results = await _db.ExecuteQueryAsync(query, new MySqlParameter("@SaleId", sale.Id));
+
+            foreach (var row in results)
+            {
+                sale.LineItems.Add(MapToLineItem(row));
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Error loading line items for sale: {SaleId}", sale.Id);
+        }
+    }
+
+    private async Task<bool> AddLineItemAsync(int saleId, SaleLineItem lineItem)
+    {
+        try
+        {
+            var query = @"INSERT INTO SaleLineItems (SaleId, ArticleId, ArticleName, Quantity,
+                UnitPrice, LineTotal, Discount)
+                VALUES (@SaleId, @ArticleId, @ArticleName, @Quantity,
+                @UnitPrice, @LineTotal, @Discount)";
+
+            await _db.ExecuteNonQueryAsync(query,
+                new MySqlParameter("@SaleId", saleId),
+                new MySqlParameter("@ArticleId", lineItem.ArticleId),
+                new MySqlParameter("@ArticleName", lineItem.ArticleName),
+                new MySqlParameter("@Quantity", lineItem.Quantity),
+                new MySqlParameter("@UnitPrice", lineItem.UnitPrice),
+                new MySqlParameter("@LineTotal", lineItem.LineTotal),
+                new MySqlParameter("@Discount", lineItem.Discount));
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Error adding line item");
+            return false;
+        }
+    }
+
+    private static Sale MapToSale(Dictionary<string, object> row)
+    {
+        return new Sale
+        {
+            Id = Convert.ToInt32(row["Id"]),
+            TicketNumber = row["TicketNumber"]?.ToString() ?? string.Empty,
+            CustomerId = row["CustomerId"] == null ? 0 : Convert.ToInt32(row["CustomerId"]),
+            SaleDate = Convert.ToDateTime(row["SaleDate"]),
+            SubTotal = Convert.ToDecimal(row["SubTotal"] ?? 0m),
+            Tax = Convert.ToDecimal(row["Tax"] ?? 0m),
+            TotalAmount = Convert.ToDecimal(row["TotalAmount"] ?? 0m),
+            PaymentMethod = row["PaymentMethod"]?.ToString() ?? string.Empty,
+            Status = row["Status"]?.ToString() ?? "Completed",
+            Notes = row["Notes"]?.ToString() ?? string.Empty,
+            SalesmanId = row["SalesmanId"] == null ? 0 : Convert.ToInt32(row["SalesmanId"]),
+            CreatedAt = Convert.ToDateTime(row["CreatedAt"])
+        };
+    }
+
+    private static SaleLineItem MapToLineItem(Dictionary<string, object> row)
+    {
+        return new SaleLineItem
+        {
+            Id = Convert.ToInt32(row["Id"]),
+            SaleId = Convert.ToInt32(row["SaleId"]),
+            ArticleId = Convert.ToInt32(row["ArticleId"]),
+            ArticleName = row["ArticleName"]?.ToString() ?? string.Empty,
+            Quantity = Convert.ToInt32(row["Quantity"]),
+            UnitPrice = Convert.ToDecimal(row["UnitPrice"]),
+            LineTotal = Convert.ToDecimal(row["LineTotal"]),
+            Discount = Convert.ToDecimal(row["Discount"] ?? 0m)
+        };
+    }
+}

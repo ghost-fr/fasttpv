@@ -1,0 +1,76 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="FastTPV.Desktop.Features.CompanySettingsWindow"
+        Width="560" Height="720"
+        Title="Company Settings"
+        WindowStartupLocation="CenterOwner">
+  <ScrollViewer>
+    <StackPanel Margin="24" Spacing="8">
+      <TextBlock Text="Company Settings" FontSize="22" FontWeight="Bold" Margin="0,0,0,2"/>
+      <TextBlock TextWrapping="Wrap" Foreground="#6B7280" Margin="0,0,0,10"
+                 Text="These details appear on receipts and identify your business. Empty fields are skipped so the header stays clean."/>
+
+      <TextBlock Text="Business name *" FontWeight="Bold"/>
+      <TextBox x:Name="BusinessName" Watermark="Legal / trading name shown on receipts"/>
+
+      <TextBlock Text="Trade name (optional)" Margin="0,6,0,0"/>
+      <TextBox x:Name="TradeName" Watermark="Only if different from business name"/>
+
+      <TextBlock Text="Tax ID / CIF / NIF / VAT" Margin="0,6,0,0"/>
+      <TextBox x:Name="TaxId" Watermark="e.g. B12345678"/>
+
+      <TextBlock Text="Address" FontWeight="Bold" Margin="0,10,0,0"/>
+      <TextBox x:Name="AddressLine1" Watermark="Street and number"/>
+      <TextBox x:Name="AddressLine2" Watermark="Floor, suite, building (optional)"/>
+
+      <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
+        <StackPanel Grid.Column="0" Spacing="4">
+          <TextBlock Text="Postal code"/>
+          <TextBox x:Name="PostalCode"/>
+        </StackPanel>
+        <StackPanel Grid.Column="1" Spacing="4">
+          <TextBlock Text="City"/>
+          <TextBox x:Name="City"/>
+        </StackPanel>
+        <StackPanel Grid.Column="2" Spacing="4">
+          <TextBlock Text="Province / State"/>
+          <TextBox x:Name="Province"/>
+        </StackPanel>
+      </Grid>
+
+      <TextBlock Text="Country" Margin="0,4,0,0"/>
+      <TextBox x:Name="Country"/>
+
+      <TextBlock Text="Contact" FontWeight="Bold" Margin="0,10,0,0"/>
+      <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+        <StackPanel Grid.Column="0" Spacing="4">
+          <TextBlock Text="Phone"/>
+          <TextBox x:Name="Phone"/>
+        </StackPanel>
+        <StackPanel Grid.Column="1" Spacing="4">
+          <TextBlock Text="Email"/>
+          <TextBox x:Name="Email"/>
+        </StackPanel>
+      </Grid>
+      <TextBlock Text="Website"/>
+      <TextBox x:Name="Website" Watermark="https://..."/>
+
+      <TextBlock Text="Receipt text" FontWeight="Bold" Margin="0,10,0,0"/>
+      <TextBlock Text="Extra header line (optional)" Foreground="#6B7280" FontSize="12"/>
+      <TextBox x:Name="ReceiptHeader" Watermark="e.g. Open Mon–Sat 9:00–20:00"/>
+      <TextBlock Text="Footer (printed at the bottom of every receipt)" Foreground="#6B7280" FontSize="12"/>
+      <TextBox x:Name="ReceiptFooter" Watermark="Thank you for your purchase!"/>
+
+      <TextBlock Text="Logo path (optional, for future use)" Margin="0,6,0,0"/>
+      <TextBox x:Name="LogoPath" Watermark="Path to logo image file"/>
+
+      <TextBlock x:Name="Message" TextWrapping="Wrap" Margin="0,12,0,0" MinHeight="36"/>
+
+      <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10" Margin="0,8,0,0">
+        <Button Content="Cancel" Width="100" Click="Cancel"/>
+        <Button x:Name="SaveButton" Content="Save" Width="120" Click="Save"
+                Background="#2563EB" Foreground="White" FontWeight="SemiBold"/>
+      </StackPanel>
+    </StackPanel>
+  </ScrollViewer>
+</Window>

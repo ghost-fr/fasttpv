@@ -1,0 +1,45 @@
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Server=localhost;Database=FastTPV;Uid=root;Pwd=your_password;Convert Zero Datetime=true;Allow Zero Datetime=true"
+  },
+  "Application": {
+    "Name": "FastTPV",
+    "Version": "1.0.0",
+    "Company": "Your Company Name",
+    "DebugMode": false
+  },
+  "Database": {
+    "Provider": "MySQL",
+    "AutoMigrate": true,
+    "ConnectionTimeout": 30
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft": "Warning",
+      "System": "Warning"
+    },
+    "FilePath": "Logs/fasttpv-.txt",
+    "RetainedFileCountLimit": 10
+  },
+  "Features": {
+    "EnableBiometricAuth": false,
+    "EnableAdvancedReporting": true,
+    "EnableMultiLanguage": false,
+    "EnableWebDashboard": false
+  },
+  "POS": {
+    "DefaultCurrency": "USD",
+    "DefaultTaxRate": 0.10,
+    "PrinterName": "Default Printer",
+    "ReceiptFormat": "80mm",
+    "AutoLogoffMinutes": 15,
+    "SessionTimeout": 30
+  },
+  "Security": {
+    "RequireLogin": true,
+    "MinPasswordLength": 8,
+    "SessionEncryption": true,
+    "EnableAuditLog": true
+  }
+}

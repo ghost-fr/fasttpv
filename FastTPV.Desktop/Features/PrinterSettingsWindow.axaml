@@ -1,0 +1,64 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="FastTPV.Desktop.Features.PrinterSettingsWindow"
+        Width="500" Height="640"
+        Title="Printer Settings"
+        WindowStartupLocation="CenterOwner">
+  <ScrollViewer>
+    <StackPanel Margin="24" Spacing="10">
+      <TextBlock Text="Printer Settings" FontSize="22" FontWeight="Bold" Margin="0,0,0,4"/>
+      <TextBlock TextWrapping="Wrap" Foreground="#6B7280" Margin="0,0,0,10"
+                 Text="Every thermal printer's firmware can differ slightly, even within the same brand. Pick a starting point below, then use &quot;Send test print&quot; to check it against your actual printer before saving."/>
+
+      <TextBlock Text="Connection type" FontWeight="Bold"/>
+      <ComboBox x:Name="Connection" HorizontalAlignment="Stretch">
+        <ComboBoxItem Tag="None" Content="None — save receipts as a file only, no hardware"/>
+        <ComboBoxItem Tag="Network" Content="Network / WiFi thermal printer (recommended)"/>
+        <ComboBoxItem Tag="WindowsShell" Content="Regular document printer (Windows only)"/>
+      </ComboBox>
+
+      <TextBlock Text="Printer IP address (Network only)" Margin="0,8,0,0"/>
+      <TextBox x:Name="IpAddress" Watermark="e.g. 192.168.1.50"/>
+
+      <TextBlock Text="Port (Network only — 9100 is correct for almost every printer)"/>
+      <TextBox x:Name="Port" Text="9100"/>
+
+      <TextBlock Text="Windows printer name (Windows document printer only)"/>
+      <TextBox x:Name="PrinterName"/>
+
+      <TextBlock Text="Paper width" FontWeight="Bold" Margin="0,8,0,0"/>
+      <ComboBox x:Name="PaperWidth" HorizontalAlignment="Stretch">
+        <ComboBoxItem Tag="80mm" Content="80mm (standard — most countertop printers)"/>
+        <ComboBoxItem Tag="58mm" Content="58mm (compact / portable printers)"/>
+      </ComboBox>
+
+      <TextBlock Text="Character set / code page" FontWeight="Bold" Margin="0,8,0,0"/>
+      <TextBlock TextWrapping="Wrap" Foreground="#6B7280" FontSize="12"
+                 Text="Pick the one that prints accented characters (á é í ó ú ñ ¿ ¡) correctly in the test print."/>
+      <ComboBox x:Name="CodePage" HorizontalAlignment="Stretch">
+        <ComboBoxItem Tag="16" Content="16 — WPC1252 / Western Europe (most common default)"/>
+        <ComboBoxItem Tag="0" Content="0 — PC437 (USA / Standard Europe)"/>
+        <ComboBoxItem Tag="2" Content="2 — PC850 (Multilingual)"/>
+        <ComboBoxItem Tag="19" Content="19 — PC858 (Euro)"/>
+        <ComboBoxItem Tag="255" Content="255 — Custom / other (rarely needed)"/>
+      </ComboBox>
+
+      <TextBlock Text="Paper cut command" FontWeight="Bold" Margin="0,8,0,0"/>
+      <TextBlock TextWrapping="Wrap" Foreground="#6B7280" FontSize="12"
+                 Text="If the receipt prints correctly but the paper isn't cut afterward, switch this and test again."/>
+      <ComboBox x:Name="CutStyle" HorizontalAlignment="Stretch">
+        <ComboBoxItem Tag="Standard" Content="Standard (try this first)"/>
+        <ComboBoxItem Tag="TwoParameter" Content="Two-parameter (older / clone printers)"/>
+        <ComboBoxItem Tag="None" Content="No cut command (tear off manually)"/>
+      </ComboBox>
+
+      <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,16,0,0">
+        <Button x:Name="TestPrintButton" Content="Send test print" Click="TestPrint" Padding="14,8"
+                Background="#2563EB" Foreground="White"/>
+        <Button Content="Save" Click="Save" Padding="14,8" Background="#16A34A" Foreground="White"/>
+      </StackPanel>
+
+      <TextBlock x:Name="Message" TextWrapping="Wrap" Foreground="#374151" Margin="0,10,0,0"/>
+    </StackPanel>
+  </ScrollViewer>
+</Window>

@@ -1,0 +1,85 @@
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Markup.Xaml;
+using FastTPV.Core.Data;
+using FastTPV.Core.Services;
+using FastTPV.Desktop.ViewModels;
+using FastTPV.Desktop.Views;
+using Serilog;
+using System;
+using System.IO;
+
+namespace FastTPV.Desktop;
+
+public partial class App : Application
+{
+    private ArticleService? _articleService;
+    private CustomerService? _customerService;
+    private SaleService? _saleService;
+    private decimal _taxRate = 0.10m;
+
+    public override void Initialize()
+    {
+        AvaloniaXamlLoader.Load(this);
+    }
+
+    public override void OnFrameworkInitializationCompleted()
+    {
+        if (ApplicationLifetime is IClassicDesktopApplicationLifetime desktop)
+        {
+            var settingsPath = Path.Combine(AppContext.BaseDirectory, "appsettings.json");
+            var settings = RuntimeSettings.Load(settingsPath);
+            _taxRate = settings.DefaultTaxRate;
+
+            var db = new DatabaseContext(settings.ConnectionString);
+            _articleService = new ArticleService(db);
+            _customerService = new CustomerService(db);
+            _saleService = new SaleService(db);
+
+            // Fire-and-forget: verify connectivity and create the schema on first run
+            // without blocking the UI thread at startup.
+            _ = InitializeDatabaseAsync(db, settings.AutoMigrate);
+
+            var mainWindowViewModel = new MainWindowViewModel(CreateSalesWindow, CreateInventoryWindow);
+            desktop.MainWindow = new MainWindow(mainWindowViewModel);
+
+            if (!File.Exists(settingsPath))
+            {
+                Log.Warning(
+                    "appsettings.json not found at {Path}; using default connection settings. " +
+                    "Copy appsettings.json.template to appsettings.json and edit the connection string.",
+                    settingsPath);
+            }
+        }
+
+        base.OnFrameworkInitializationCompleted();
+    }
+
+    private static async System.Threading.Tasks.Task InitializeDatabaseAsync(DatabaseContext db, bool autoMigrate)
+    {
+        var connected = await db.TestConnectionAsync();
+        if (!connected)
+        {
+            Log.Error("Could not connect to the database. Check appsettings.json and that MySQL is running.");
+            return;
+        }
+
+        if (autoMigrate)
+        {
+            await DatabaseInitializer.EnsureSchemaAsync(db);
+        }
+    }
+
+    private Window CreateSalesWindow()
+    {
+        var vm = new SalesWindowViewModel(_articleService!, _saleService!, _customerService!, _taxRate);
+        return new SalesWindow(vm);
+    }
+
+    private Window CreateInventoryWindow()
+    {
+        var vm = new InventoryWindowViewModel(_articleService!);
+        return new InventoryWindow(vm);
+    }
+}

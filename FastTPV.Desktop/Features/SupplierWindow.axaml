@@ -1,0 +1,26 @@
+<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" x:Class="FastTPV.Desktop.Features.SupplierWindow" Width="1000" Height="650" Title="Suppliers" WindowStartupLocation="CenterOwner">
+  <Grid RowDefinitions="Auto,*" ColumnDefinitions="2*,3*" Margin="24">
+    <StackPanel Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="12" Margin="0,0,0,18">
+      <TextBlock Text="Suppliers" FontSize="26" FontWeight="Bold" VerticalAlignment="Center"/>
+      <TextBox x:Name="Search" Width="280" Watermark="Search name, code or email" TextChanged="SearchChanged"/>
+      <Button Content="New supplier" Click="NewSupplier" Padding="16,8" Background="#2563EB" Foreground="White"/>
+    </StackPanel>
+    <ListBox x:Name="SupplierList" Grid.Row="1" SelectionChanged="SupplierSelected" Margin="0,0,18,0">
+      <ListBox.ItemTemplate><DataTemplate><StackPanel Margin="10,8"><TextBlock Text="{Binding Name}" FontWeight="Bold"/><TextBlock Text="{Binding Code}" Foreground="#64748B"/><TextBlock Text="{Binding ContactName}" Foreground="#64748B" FontSize="12"/></StackPanel></DataTemplate></ListBox.ItemTemplate>
+    </ListBox>
+    <Border Grid.Row="1" Grid.Column="1" Padding="22" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1">
+      <ScrollViewer><StackPanel Spacing="10">
+        <TextBlock Text="Supplier details" FontSize="20" FontWeight="Bold"/>
+        <TextBox x:Name="Code" Watermark="Code *"/>
+        <TextBox x:Name="Name" Watermark="Name *"/>
+        <TextBox x:Name="ContactName" Watermark="Contact name"/>
+        <Grid ColumnDefinitions="*,*" ColumnSpacing="10"><TextBox x:Name="Email" Watermark="Email"/><TextBox x:Name="Phone" Grid.Column="1" Watermark="Phone"/></Grid>
+        <TextBox x:Name="TaxId" Watermark="Tax ID"/>
+        <TextBox x:Name="Address" Watermark="Address"/>
+        <CheckBox x:Name="IsActive" Content="Active" IsChecked="True"/>
+        <TextBlock x:Name="Message" Foreground="#B91C1C" TextWrapping="Wrap"/>
+        <StackPanel Orientation="Horizontal" Spacing="10"><Button Content="Save" Click="Save" Padding="18,8" Background="#16A34A" Foreground="White"/><Button Content="Delete" Click="Delete" Padding="18,8" Background="#DC2626" Foreground="White"/></StackPanel>
+      </StackPanel></ScrollViewer>
+    </Border>
+  </Grid>
+</Window>

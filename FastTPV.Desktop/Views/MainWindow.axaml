@@ -1,0 +1,243 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="FastTPV.Desktop.Views.MainWindow"
+        xmlns:vm="using:FastTPV.Desktop.ViewModels"
+        x:DataType="vm:MainWindowViewModel"
+        Icon="/Assets/app.ico"
+        Title="FastTPV - Modern POS Management System"
+        WindowState="Maximized"
+        Background="#F5F5F5">
+
+    <DockPanel>
+        <!-- Top Menu Bar -->
+        <Border DockPanel.Dock="Top" Background="#2D2D2D" Padding="0" Height="50">
+            <Grid ColumnDefinitions="*,Auto" Margin="20,0">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="FastTPV" FontSize="20" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
+                    <TextBlock Text="v1.0" FontSize="12" Foreground="#B0B0B0" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Spacing="12">
+                    <TextBlock Text="{Binding CurrentUserDisplayName, StringFormat='Signed in as {0}'}" Foreground="#B0B0B0" VerticalAlignment="Center"/>
+                    <Button Content="🔑 Change password" Command="{Binding ChangePasswordCommand}" Padding="10,4" Background="Transparent" Foreground="#B0B0B0" BorderThickness="0"/>
+                    <Button Content="🔓 Log out" Click="Logout" Padding="10,4" Background="Transparent" Foreground="#FF6B6B" BorderThickness="0"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Left Sidebar Navigation -->
+        <Border DockPanel.Dock="Left" Background="#3C3C3C" Width="250" BorderThickness="1,0,0,0" BorderBrush="#1a1a1a">
+            <ScrollViewer>
+            <StackPanel>
+                <Button Content="🛒 Sales / POS" Padding="20,15" Foreground="White" Background="Transparent"
+                        BorderThickness="0" Cursor="Hand" HorizontalContentAlignment="Left"
+                        HorizontalAlignment="Stretch" Command="{Binding OpenSalesCommand}"/>
+                <Button Content="💵 Cash Drawer" Padding="20,15" Foreground="White" Background="Transparent"
+                        BorderThickness="0" Cursor="Hand" HorizontalContentAlignment="Left"
+                        HorizontalAlignment="Stretch" Command="{Binding OpenCashDrawerCommand}"/>
+                <Button Content="📦 Inventory" Padding="20,15" Foreground="White" Background="Transparent"
+                        BorderThickness="0" Cursor="Hand" HorizontalContentAlignment="Left"
+                        HorizontalAlignment="Stretch" Command="{Binding OpenInventoryCommand}"/>
+                <Button Content="🏭 Suppliers" Padding="20,15" Foreground="White" Background="Transparent"
+                        BorderThickness="0" Cursor="Hand" HorizontalContentAlignment="Left"
+                        HorizontalAlignment="Stretch" Command="{Binding OpenSuppliersCommand}"/>
+                <Button Content="👥 Customers" Padding="20,15" Foreground="White" Background="Transparent"
+                        BorderThickness="0" Cursor="Hand" HorizontalContentAlignment="Left"
+                        HorizontalAlignment="Stretch" Command="{Binding OpenCustomersCommand}"/>
+                <Button Content="📊 Reports" Padding="20,15" Foreground="White" Background="Transparent"
+                        BorderThickness="0" Cursor="Hand" HorizontalContentAlignment="Left"
+                        HorizontalAlignment="Stretch" Command="{Binding OpenReportsCommand}"/>
+                <Separator Background="#555" Margin="0,20,0,0" IsVisible="{Binding IsAdmin}"/>
+                <TextBlock Text="ADMIN" FontSize="11" Foreground="#888" Margin="20,10,0,4" IsVisible="{Binding IsAdmin}"/>
+                <Button Content="👤 Users" Padding="20,15" Foreground="White" Background="Transparent"
+                        BorderThickness="0" Cursor="Hand" HorizontalContentAlignment="Left"
+                        HorizontalAlignment="Stretch" Command="{Binding OpenUsersCommand}" IsVisible="{Binding IsAdmin}"/>
+                <Button Content="🏢 Company Settings" Padding="20,15" Foreground="White" Background="Transparent"
+                        BorderThickness="0" Cursor="Hand" HorizontalContentAlignment="Left"
+                        HorizontalAlignment="Stretch" Command="{Binding OpenCompanySettingsCommand}" IsVisible="{Binding IsAdmin}"/>
+                <Button Content="🖨️ Printer Settings" Padding="20,15" Foreground="White" Background="Transparent"
+                        BorderThickness="0" Cursor="Hand" HorizontalContentAlignment="Left"
+                        HorizontalAlignment="Stretch" Command="{Binding OpenPrinterSettingsCommand}" IsVisible="{Binding IsAdmin}"/>
+                <Separator Background="#555" Margin="0,20,0,0"/>
+                <Button Content="🚪 Exit" Padding="20,15" Foreground="#FF6B6B" Background="Transparent"
+                        BorderThickness="0" Cursor="Hand" HorizontalContentAlignment="Left"
+                        HorizontalAlignment="Stretch" Command="{Binding ExitCommand}"/>
+            </StackPanel>
+            </ScrollViewer>
+        </Border>
+
+        <!-- Main Content Area -->
+        <Grid RowDefinitions="*,50" Margin="20">
+            <!-- Content Panel -->
+            <ScrollViewer Grid.Row="0">
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Margin="0,20">
+                    <TextBlock Text="Welcome to FastTPV" FontSize="32" FontWeight="Bold" Foreground="#2D2D2D" Margin="0,0,0,20" TextAlignment="Center"/>
+                    <TextBlock Text="Modern POS Management System" FontSize="18" Foreground="#666" TextAlignment="Center" Margin="0,0,0,40"/>
+
+                    <WrapPanel HorizontalAlignment="Center" MaxWidth="1000">
+                        <!-- Sales Card -->
+                        <Button Command="{Binding OpenSalesCommand}" Cursor="Hand" Margin="10"
+                                Background="Transparent" BorderThickness="0" Padding="0">
+                            <Button.Styles>
+                                <Style Selector="Border.card:pointerover">
+                                    <Setter Property="Background" Value="#F5F5F5"/>
+                                </Style>
+                            </Button.Styles>
+                            <Border Classes="card" Background="White" BorderThickness="1" BorderBrush="#E0E0E0" CornerRadius="8" Padding="30" Width="200">
+                                <StackPanel>
+                                    <TextBlock Text="🛒" FontSize="48" TextAlignment="Center"/>
+                                    <TextBlock Text="New Sale" FontSize="16" FontWeight="Bold" Foreground="#2D2D2D" TextAlignment="Center" Margin="0,10,0,0"/>
+                                    <TextBlock Text="Create a new transaction" FontSize="12" Foreground="#999" TextAlignment="Center" Margin="0,5,0,0"/>
+                                </StackPanel>
+                            </Border>
+                        </Button>
+
+                        <!-- Cash Drawer Card -->
+                        <Button Command="{Binding OpenCashDrawerCommand}" Cursor="Hand" Margin="10"
+                                Background="Transparent" BorderThickness="0" Padding="0">
+                            <Button.Styles>
+                                <Style Selector="Border.card:pointerover">
+                                    <Setter Property="Background" Value="#F5F5F5"/>
+                                </Style>
+                            </Button.Styles>
+                            <Border Classes="card" Background="White" BorderThickness="1" BorderBrush="#E0E0E0" CornerRadius="8" Padding="30" Width="200">
+                                <StackPanel>
+                                    <TextBlock Text="💵" FontSize="48" TextAlignment="Center"/>
+                                    <TextBlock Text="Cash Drawer" FontSize="16" FontWeight="Bold" Foreground="#2D2D2D" TextAlignment="Center" Margin="0,10,0,0"/>
+                                    <TextBlock Text="Open/close till, reconcile cash" FontSize="12" Foreground="#999" TextAlignment="Center" Margin="0,5,0,0"/>
+                                </StackPanel>
+                            </Border>
+                        </Button>
+
+                        <!-- Inventory Card -->
+                        <Button Command="{Binding OpenInventoryCommand}" Cursor="Hand" Margin="10"
+                                Background="Transparent" BorderThickness="0" Padding="0">
+                            <Button.Styles>
+                                <Style Selector="Border.card:pointerover">
+                                    <Setter Property="Background" Value="#F5F5F5"/>
+                                </Style>
+                            </Button.Styles>
+                            <Border Classes="card" Background="White" BorderThickness="1" BorderBrush="#E0E0E0" CornerRadius="8" Padding="30" Width="200">
+                                <StackPanel>
+                                    <TextBlock Text="📦" FontSize="48" TextAlignment="Center"/>
+                                    <TextBlock Text="Inventory" FontSize="16" FontWeight="Bold" Foreground="#2D2D2D" TextAlignment="Center" Margin="0,10,0,0"/>
+                                    <TextBlock Text="Manage stock levels" FontSize="12" Foreground="#999" TextAlignment="Center" Margin="0,5,0,0"/>
+                                </StackPanel>
+                            </Border>
+                        </Button>
+
+                        <!-- Suppliers Card -->
+                        <Button Command="{Binding OpenSuppliersCommand}" Cursor="Hand" Margin="10"
+                                Background="Transparent" BorderThickness="0" Padding="0">
+                            <Button.Styles>
+                                <Style Selector="Border.card:pointerover">
+                                    <Setter Property="Background" Value="#F5F5F5"/>
+                                </Style>
+                            </Button.Styles>
+                            <Border Classes="card" Background="White" BorderThickness="1" BorderBrush="#E0E0E0" CornerRadius="8" Padding="30" Width="200">
+                                <StackPanel>
+                                    <TextBlock Text="🏭" FontSize="48" TextAlignment="Center"/>
+                                    <TextBlock Text="Suppliers" FontSize="16" FontWeight="Bold" Foreground="#2D2D2D" TextAlignment="Center" Margin="0,10,0,0"/>
+                                    <TextBlock Text="Manage supplier records" FontSize="12" Foreground="#999" TextAlignment="Center" Margin="0,5,0,0"/>
+                                </StackPanel>
+                            </Border>
+                        </Button>
+
+                        <!-- Customers Card -->
+                        <Button Command="{Binding OpenCustomersCommand}" Cursor="Hand" Margin="10"
+                                Background="Transparent" BorderThickness="0" Padding="0">
+                            <Button.Styles>
+                                <Style Selector="Border.card:pointerover">
+                                    <Setter Property="Background" Value="#F5F5F5"/>
+                                </Style>
+                            </Button.Styles>
+                            <Border Classes="card" Background="White" BorderThickness="1" BorderBrush="#E0E0E0" CornerRadius="8" Padding="30" Width="200">
+                                <StackPanel>
+                                    <TextBlock Text="👥" FontSize="48" TextAlignment="Center"/>
+                                    <TextBlock Text="Customers" FontSize="16" FontWeight="Bold" Foreground="#2D2D2D" TextAlignment="Center" Margin="0,10,0,0"/>
+                                    <TextBlock Text="Manage customer accounts" FontSize="12" Foreground="#999" TextAlignment="Center" Margin="0,5,0,0"/>
+                                </StackPanel>
+                            </Border>
+                        </Button>
+
+                        <!-- Reports Card -->
+                        <Button Command="{Binding OpenReportsCommand}" Cursor="Hand" Margin="10"
+                                Background="Transparent" BorderThickness="0" Padding="0">
+                            <Button.Styles>
+                                <Style Selector="Border.card:pointerover">
+                                    <Setter Property="Background" Value="#F5F5F5"/>
+                                </Style>
+                            </Button.Styles>
+                            <Border Classes="card" Background="White" BorderThickness="1" BorderBrush="#E0E0E0" CornerRadius="8" Padding="30" Width="200">
+                                <StackPanel>
+                                    <TextBlock Text="📊" FontSize="48" TextAlignment="Center"/>
+                                    <TextBlock Text="Reports" FontSize="16" FontWeight="Bold" Foreground="#2D2D2D" TextAlignment="Center" Margin="0,10,0,0"/>
+                                    <TextBlock Text="Sales &amp; low-stock overview" FontSize="12" Foreground="#999" TextAlignment="Center" Margin="0,5,0,0"/>
+                                </StackPanel>
+                            </Border>
+                        </Button>
+
+                        <!-- Users Card (Admin only) -->
+                        <Button Command="{Binding OpenUsersCommand}" Cursor="Hand" Margin="10"
+                                Background="Transparent" BorderThickness="0" Padding="0" IsVisible="{Binding IsAdmin}">
+                            <Button.Styles>
+                                <Style Selector="Border.card:pointerover">
+                                    <Setter Property="Background" Value="#F5F5F5"/>
+                                </Style>
+                            </Button.Styles>
+                            <Border Classes="card" Background="White" BorderThickness="1" BorderBrush="#E0E0E0" CornerRadius="8" Padding="30" Width="200">
+                                <StackPanel>
+                                    <TextBlock Text="👤" FontSize="48" TextAlignment="Center"/>
+                                    <TextBlock Text="Users" FontSize="16" FontWeight="Bold" Foreground="#2D2D2D" TextAlignment="Center" Margin="0,10,0,0"/>
+                                    <TextBlock Text="Manage accounts &amp; roles" FontSize="12" Foreground="#999" TextAlignment="Center" Margin="0,5,0,0"/>
+                                </StackPanel>
+                            </Border>
+                        </Button>
+
+                        <!-- Company Settings Card (Admin only) -->
+                        <Button Command="{Binding OpenCompanySettingsCommand}" Cursor="Hand" Margin="10"
+                                Background="Transparent" BorderThickness="0" Padding="0" IsVisible="{Binding IsAdmin}">
+                            <Button.Styles>
+                                <Style Selector="Border.card:pointerover">
+                                    <Setter Property="Background" Value="#F5F5F5"/>
+                                </Style>
+                            </Button.Styles>
+                            <Border Classes="card" Background="White" BorderThickness="1" BorderBrush="#E0E0E0" CornerRadius="8" Padding="30" Width="200">
+                                <StackPanel>
+                                    <TextBlock Text="🏢" FontSize="48" TextAlignment="Center"/>
+                                    <TextBlock Text="Company Settings" FontSize="16" FontWeight="Bold" Foreground="#2D2D2D" TextAlignment="Center" Margin="0,10,0,0"/>
+                                    <TextBlock Text="Business identity on receipts" FontSize="12" Foreground="#999" TextAlignment="Center" Margin="0,5,0,0"/>
+                                </StackPanel>
+                            </Border>
+                        </Button>
+
+                        <!-- Printer Settings Card (Admin only) -->
+                        <Button Command="{Binding OpenPrinterSettingsCommand}" Cursor="Hand" Margin="10"
+                                Background="Transparent" BorderThickness="0" Padding="0" IsVisible="{Binding IsAdmin}">
+                            <Button.Styles>
+                                <Style Selector="Border.card:pointerover">
+                                    <Setter Property="Background" Value="#F5F5F5"/>
+                                </Style>
+                            </Button.Styles>
+                            <Border Classes="card" Background="White" BorderThickness="1" BorderBrush="#E0E0E0" CornerRadius="8" Padding="30" Width="200">
+                                <StackPanel>
+                                    <TextBlock Text="🖨️" FontSize="48" TextAlignment="Center"/>
+                                    <TextBlock Text="Printer Settings" FontSize="16" FontWeight="Bold" Foreground="#2D2D2D" TextAlignment="Center" Margin="0,10,0,0"/>
+                                    <TextBlock Text="Configure &amp; test receipt printing" FontSize="12" Foreground="#999" TextAlignment="Center" Margin="0,5,0,0"/>
+                                </StackPanel>
+                            </Border>
+                        </Button>
+                    </WrapPanel>
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- Status Bar -->
+            <Border Grid.Row="1" Background="#F0F0F0" BorderThickness="0,1,0,0" BorderBrush="#E0E0E0" Padding="20,0">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding StatusMessage, StringFormat='Status: {0}'}" Foreground="#666" FontSize="12"/>
+                    <Separator Width="1" Background="#D0D0D0" Margin="15,0"/>
+                    <TextBlock Text="{Binding CurrentDateTime, StringFormat='{}{0:g}'}" Foreground="#666" FontSize="12"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </DockPanel>
+</Window>

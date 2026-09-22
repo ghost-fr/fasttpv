@@ -1,0 +1,194 @@
+using MySql.Data.MySqlClient;
+using Serilog;
+
+namespace FastTPV.Core.Data;
+
+/// <summary>
+/// Creates the FastTPV schema on first run so the app is usable against an empty
+/// database — you only need to CREATE DATABASE FastTPV; the tables are created here.
+/// </summary>
+public static class DatabaseInitializer
+{
+    private static readonly ILogger Logger = Log.ForContext(typeof(DatabaseInitializer));
+
+    public static async Task EnsureSchemaAsync(DatabaseContext db)
+    {
+        var statements = new[]
+        {
+            @"CREATE TABLE IF NOT EXISTS Articles (
+                Id INT AUTO_INCREMENT PRIMARY KEY,
+                Code VARCHAR(50) UNIQUE NOT NULL,
+                Name VARCHAR(255) NOT NULL,
+                Description TEXT,
+                Price DECIMAL(10, 2) NOT NULL DEFAULT 0,
+                CostPrice DECIMAL(10, 2) NOT NULL DEFAULT 0,
+                StockLevel INT NOT NULL DEFAULT 0,
+                MinimumStock INT NOT NULL DEFAULT 0,
+                Category VARCHAR(100),
+                IsActive BOOLEAN NOT NULL DEFAULT TRUE,
+                CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+                UpdatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX(Code), INDEX(Category)
+            )",
+            @"CREATE TABLE IF NOT EXISTS Customers (
+                Id INT AUTO_INCREMENT PRIMARY KEY,
+                Code VARCHAR(50) UNIQUE NOT NULL,
+                Name VARCHAR(255) NOT NULL,
+                Email VARCHAR(255),
+                Phone VARCHAR(20),
+                Address VARCHAR(255),
+                City VARCHAR(100),
+                ZipCode VARCHAR(10),
+                TaxId VARCHAR(50),
+                CreditLimit DECIMAL(10, 2) NOT NULL DEFAULT 0,
+                CurrentDebt DECIMAL(10, 2) NOT NULL DEFAULT 0,
+                IsActive BOOLEAN NOT NULL DEFAULT TRUE,
+                CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+                UpdatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX(Code), INDEX(Email)
+            )",
+            @"CREATE TABLE IF NOT EXISTS Sales (
+                Id INT AUTO_INCREMENT PRIMARY KEY,
+                TicketNumber VARCHAR(50) UNIQUE NOT NULL,
+                CustomerId INT NULL,
+                SaleDate DATETIME NOT NULL,
+                SubTotal DECIMAL(10, 2) NOT NULL DEFAULT 0,
+                Tax DECIMAL(10, 2) NOT NULL DEFAULT 0,
+                TotalAmount DECIMAL(10, 2) NOT NULL DEFAULT 0,
+                TicketDiscountAmount DECIMAL(10, 2) NOT NULL DEFAULT 0,
+                PaymentMethod VARCHAR(50),
+                Status VARCHAR(20) NOT NULL DEFAULT 'Completed',
+                Notes TEXT,
+                SalesmanId INT NULL,
+                CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+                INDEX(TicketNumber), INDEX(SaleDate)
+            )",
+            @"CREATE TABLE IF NOT EXISTS SaleLineItems (
+                Id INT AUTO_INCREMENT PRIMARY KEY,
+                SaleId INT NOT NULL,
+                ArticleId INT NOT NULL,
+                ArticleName VARCHAR(255),
+                Quantity INT NOT NULL,
+                UnitPrice DECIMAL(10, 2) NOT NULL,
+                LineTotal DECIMAL(10, 2) NOT NULL,
+                Discount DECIMAL(10, 2) NOT NULL DEFAULT 0,
+                INDEX(SaleId)
+            )",
+            @"CREATE TABLE IF NOT EXISTS Users (
+                Id INT AUTO_INCREMENT PRIMARY KEY,
+                UserName VARCHAR(50) UNIQUE NOT NULL,
+                DisplayName VARCHAR(100) NOT NULL,
+                PasswordHash VARCHAR(255) NOT NULL,
+                PasswordSalt VARCHAR(255) NOT NULL,
+                Role VARCHAR(20) NOT NULL DEFAULT 'Cashier',
+                IsActive BOOLEAN NOT NULL DEFAULT TRUE,
+                FailedLoginAttempts INT NOT NULL DEFAULT 0,
+                LockedUntil DATETIME NULL,
+                CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+                INDEX(UserName)
+            )",
+            @"CREATE TABLE IF NOT EXISTS AuditLog (
+                Id INT AUTO_INCREMENT PRIMARY KEY,
+                UserId INT NOT NULL DEFAULT 0,
+                Action VARCHAR(50) NOT NULL,
+                Entity VARCHAR(50) NOT NULL,
+                Details VARCHAR(255),
+                CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+                INDEX(UserId), INDEX(CreatedAt)
+            )",
+            @"CREATE TABLE IF NOT EXISTS CashSessions (
+                Id INT AUTO_INCREMENT PRIMARY KEY,
+                UserId INT NOT NULL,
+                OpenedAt DATETIME NOT NULL,
+                OpeningFloat DECIMAL(10, 2) NOT NULL DEFAULT 0,
+                ClosedAt DATETIME NULL,
+                CountedCash DECIMAL(10, 2) NULL,
+                ExpectedCash DECIMAL(10, 2) NULL,
+                Variance DECIMAL(10, 2) NULL,
+                Status VARCHAR(20) NOT NULL DEFAULT 'Open',
+                Notes VARCHAR(255),
+                INDEX(UserId), INDEX(Status)
+            )",
+            @"CREATE TABLE IF NOT EXISTS CashMovements (
+                Id INT AUTO_INCREMENT PRIMARY KEY,
+                CashSessionId INT NOT NULL,
+                Type VARCHAR(10) NOT NULL,
+                Amount DECIMAL(10, 2) NOT NULL,
+                Reason VARCHAR(255),
+                CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+                INDEX(CashSessionId)
+            )",
+            @"CREATE TABLE IF NOT EXISTS Suppliers (
+                Id INT AUTO_INCREMENT PRIMARY KEY,
+                Code VARCHAR(50) UNIQUE NOT NULL,
+                Name VARCHAR(255) NOT NULL,
+                ContactName VARCHAR(255),
+                Email VARCHAR(255),
+                Phone VARCHAR(20),
+                TaxId VARCHAR(50),
+                Address VARCHAR(255),
+                IsActive BOOLEAN NOT NULL DEFAULT TRUE,
+                CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+                UpdatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX(Code)
+            )",
+            @"CREATE TABLE IF NOT EXISTS StockMovements (
+                Id INT AUTO_INCREMENT PRIMARY KEY,
+                ArticleId INT NOT NULL,
+                ArticleCode VARCHAR(50),
+                ArticleName VARCHAR(255),
+                Quantity INT NOT NULL,
+                MovementType VARCHAR(20) NOT NULL DEFAULT 'Adjustment',
+                Reason VARCHAR(255),
+                UserId INT NOT NULL DEFAULT 0,
+                Reference VARCHAR(100),
+                CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+                INDEX(ArticleId), INDEX(CreatedAt)
+            )",
+            @"CREATE TABLE IF NOT EXISTS Payments (
+                Id INT AUTO_INCREMENT PRIMARY KEY,
+                SaleId INT NOT NULL,
+                Method VARCHAR(50) NOT NULL DEFAULT 'Cash',
+                Amount DECIMAL(10, 2) NOT NULL,
+                `Change` DECIMAL(10, 2) NOT NULL DEFAULT 0,
+                Reference VARCHAR(100),
+                CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+                INDEX(SaleId)
+            )",
+            @"CREATE TABLE IF NOT EXISTS Categories (
+                Id INT AUTO_INCREMENT PRIMARY KEY,
+                Name VARCHAR(100) UNIQUE NOT NULL,
+                Description VARCHAR(255),
+                IsActive BOOLEAN NOT NULL DEFAULT TRUE,
+                CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
+            )"
+        };
+
+        foreach (var statement in statements)
+        {
+            await db.ExecuteNonQueryAsync(statement);
+        }
+
+        // Columns added after the tables they belong to already existed on some
+        // installs — CREATE TABLE IF NOT EXISTS above is a no-op against those.
+        // Error 1060 (duplicate column) means it's already there; safe to ignore.
+        await TryAlterAsync(db, "ALTER TABLE Users ADD COLUMN Role VARCHAR(20) NOT NULL DEFAULT 'Cashier'");
+        await TryAlterAsync(db, "ALTER TABLE Sales ADD COLUMN TicketDiscountAmount DECIMAL(10, 2) NOT NULL DEFAULT 0");
+        await TryAlterAsync(db, "ALTER TABLE Users ADD COLUMN FailedLoginAttempts INT NOT NULL DEFAULT 0");
+        await TryAlterAsync(db, "ALTER TABLE Users ADD COLUMN LockedUntil DATETIME NULL");
+
+        Logger.Information("Database schema verified/created");
+    }
+
+    private static async Task TryAlterAsync(DatabaseContext db, string statement)
+    {
+        try
+        {
+            await db.ExecuteNonQueryAsync(statement);
+        }
+        catch (MySqlException ex) when (ex.Number == 1060) // Duplicate column name
+        {
+            // Column already exists — nothing to do.
+        }
+    }
+}

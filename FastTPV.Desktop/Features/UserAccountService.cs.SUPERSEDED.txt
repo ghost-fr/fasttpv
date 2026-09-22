@@ -1,0 +1,41 @@
+using System.Security.Cryptography;
+using FastTPV.Core.Data;
+using MySql.Data.MySqlClient;
+
+namespace FastTPV.Desktop.Features;
+
+public sealed record UserSession(int UserId, string UserName, string DisplayName);
+
+public sealed class UserAccountService
+{
+    private readonly DatabaseContext _db;
+    public UserAccountService(DatabaseContext db) => _db = db;
+
+    public async Task<UserSession?> AuthenticateAsync(string userName, string password)
+    {
+        if (string.IsNullOrWhiteSpace(userName) || string.IsNullOrEmpty(password)) return null;
+
+        const string sql = "SELECT Id, UserName, DisplayName, PasswordHash, PasswordSalt, IsActive FROM Users WHERE UserName = @UserName LIMIT 1";
+        var rows = await _db.ExecuteQueryAsync(sql, new MySqlParameter("@UserName", userName.Trim()));
+
+        if (rows.Count == 0 || !Convert.ToBoolean(rows[0]["IsActive"])) return null;
+
+        var salt = Convert.FromBase64String(rows[0]["PasswordSalt"].ToString()!);
+        var expected = Convert.FromBase64String(rows[0]["PasswordHash"].ToString()!);
+        var actual = Rfc2898DeriveBytes.Pbkdf2(password, salt, 120_000, HashAlgorithmName.SHA512, expected.Length);
+
+        return CryptographicOperations.FixedTimeEquals(actual, expected)
+            ? new UserSession(Convert.ToInt32(rows[0]["Id"]), rows[0]["UserName"].ToString()!, rows[0]["DisplayName"].ToString()!)
+            : null;
+    }
+
+    public static bool IsValidPassword(string password, int minimumLength)
+        => password.Length >= minimumLength && password.Any(char.IsUpper) && password.Any(char.IsLower) && password.Any(char.IsDigit);
+
+    public static (string Hash, string Salt) HashPassword(string password)
+    {
+        var salt = RandomNumberGenerator.GetBytes(32);
+        var hash = Rfc2898DeriveBytes.Pbkdf2(password, salt, 120_000, HashAlgorithmName.SHA512, 64);
+        return (Convert.ToBase64String(hash), Convert.ToBase64String(salt));
+    }
+}
