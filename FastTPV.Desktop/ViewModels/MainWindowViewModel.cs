@@ -1,10 +1,10 @@
 using Avalonia.Controls;
+using Avalonia.Threading;
 using FastTPV.Desktop.Features;
 using FastTPV.Desktop.Views;
 using ReactiveUI;
 using System;
 using System.Reactive;
-using System.Reactive.Linq;
 
 namespace FastTPV.Desktop.ViewModels;
 
@@ -24,11 +24,6 @@ public class MainWindowViewModel : ViewModelBase
         set => this.RaiseAndSetIfChanged(ref _statusMessage, value);
     }
 
-    /// <summary>
-    /// Set once when MainWindow is constructed, right after a successful login —
-    /// neither needs to be reactive since they won't change during this window's
-    /// lifetime (logging out closes this window and shows a fresh LoginWindow).
-    /// </summary>
     public string CurrentUserDisplayName => AppRuntime.Session.CurrentUser?.DisplayName ?? "Unknown";
     public bool IsAdmin => AppRuntime.Session.CurrentUser?.Role == Roles.Admin;
 
@@ -47,9 +42,12 @@ public class MainWindowViewModel : ViewModelBase
     public MainWindowViewModel()
     {
         CurrentDateTime = DateTime.Now;
-        Observable.Interval(TimeSpan.FromSeconds(1))
-            .ObserveOn(RxApp.MainThreadScheduler)
-            .Subscribe(_ => CurrentDateTime = DateTime.Now);
+
+        // Avalonia DispatcherTimer always fires on the UI thread — safer than
+        // Observable.Interval + ObserveOn when ReactiveUI schedulers are miswired.
+        var clock = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+        clock.Tick += (_, _) => CurrentDateTime = DateTime.Now;
+        clock.Start();
 
         OpenSalesCommand = ReactiveCommand.Create(() =>
         {
