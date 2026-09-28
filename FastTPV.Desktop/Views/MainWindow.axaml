@@ -3,7 +3,6 @@
         x:Class="FastTPV.Desktop.Views.MainWindow"
         xmlns:vm="using:FastTPV.Desktop.ViewModels"
         x:DataType="vm:MainWindowViewModel"
-        Icon="/Assets/app.ico"
         Title="FastTPV - Modern POS Management System"
         WindowState="Maximized"
         Background="#F5F5F5">
@@ -171,7 +170,7 @@
                                 <StackPanel>
                                     <TextBlock Text="📊" FontSize="48" TextAlignment="Center"/>
                                     <TextBlock Text="Reports" FontSize="16" FontWeight="Bold" Foreground="#2D2D2D" TextAlignment="Center" Margin="0,10,0,0"/>
-                                    <TextBlock Text="Sales &amp; low-stock overview" FontSize="12" Foreground="#999" TextAlignment="Center" Margin="0,5,0,0"/>
+                                    <TextBlock Text="Sales & low-stock overview" FontSize="12" Foreground="#999" TextAlignment="Center" Margin="0,5,0,0"/>
                                 </StackPanel>
                             </Border>
                         </Button>
@@ -188,7 +187,7 @@
                                 <StackPanel>
                                     <TextBlock Text="👤" FontSize="48" TextAlignment="Center"/>
                                     <TextBlock Text="Users" FontSize="16" FontWeight="Bold" Foreground="#2D2D2D" TextAlignment="Center" Margin="0,10,0,0"/>
-                                    <TextBlock Text="Manage accounts &amp; roles" FontSize="12" Foreground="#999" TextAlignment="Center" Margin="0,5,0,0"/>
+                                    <TextBlock Text="Manage accounts & roles" FontSize="12" Foreground="#999" TextAlignment="Center" Margin="0,5,0,0"/>
                                 </StackPanel>
                             </Border>
                         </Button>
@@ -222,7 +221,7 @@
                                 <StackPanel>
                                     <TextBlock Text="🖨️" FontSize="48" TextAlignment="Center"/>
                                     <TextBlock Text="Printer Settings" FontSize="16" FontWeight="Bold" Foreground="#2D2D2D" TextAlignment="Center" Margin="0,10,0,0"/>
-                                    <TextBlock Text="Configure &amp; test receipt printing" FontSize="12" Foreground="#999" TextAlignment="Center" Margin="0,5,0,0"/>
+                                    <TextBlock Text="Configure & test receipt printing" FontSize="12" Foreground="#999" TextAlignment="Center" Margin="0,5,0,0"/>
                                 </StackPanel>
                             </Border>
                         </Button>
