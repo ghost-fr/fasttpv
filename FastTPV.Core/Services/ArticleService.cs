@@ -6,9 +6,6 @@ using Serilog;
 
 namespace FastTPV.Core.Services;
 
-/// <summary>
-/// Service for managing articles/products
-/// </summary>
 public class ArticleService : IArticleRepository
 {
     private readonly DatabaseContext _db;
@@ -25,10 +22,7 @@ public class ArticleService : IArticleRepository
         {
             var query = "SELECT * FROM Articles WHERE Id = @Id";
             var results = await _db.ExecuteQueryAsync(query, new MySqlParameter("@Id", id));
-
-            if (results.Count == 0)
-                return null;
-
+            if (results.Count == 0) return null;
             return MapToArticle(results[0]);
         }
         catch (Exception ex)
@@ -44,10 +38,7 @@ public class ArticleService : IArticleRepository
         {
             var query = "SELECT * FROM Articles WHERE Code = @Code";
             var results = await _db.ExecuteQueryAsync(query, new MySqlParameter("@Code", code));
-
-            if (results.Count == 0)
-                return null;
-
+            if (results.Count == 0) return null;
             return MapToArticle(results[0]);
         }
         catch (Exception ex)
@@ -107,9 +98,9 @@ public class ArticleService : IArticleRepository
         try
         {
             var query = @"INSERT INTO Articles (Code, Name, Description, Price, CostPrice, StockLevel,
-                MinimumStock, Category, IsActive, CreatedAt, UpdatedAt)
+                MinimumStock, Category, PricingMode, IsActive, CreatedAt, UpdatedAt)
                 VALUES (@Code, @Name, @Description, @Price, @CostPrice, @StockLevel,
-                @MinimumStock, @Category, @IsActive, @CreatedAt, @UpdatedAt)";
+                @MinimumStock, @Category, @PricingMode, @IsActive, @CreatedAt, @UpdatedAt)";
 
             var newId = await _db.ExecuteInsertAsync(query,
                 new MySqlParameter("@Code", article.Code),
@@ -120,6 +111,7 @@ public class ArticleService : IArticleRepository
                 new MySqlParameter("@StockLevel", article.StockLevel),
                 new MySqlParameter("@MinimumStock", article.MinimumStock),
                 new MySqlParameter("@Category", article.Category),
+                new MySqlParameter("@PricingMode", string.IsNullOrWhiteSpace(article.PricingMode) ? "Fixed" : article.PricingMode),
                 new MySqlParameter("@IsActive", article.IsActive),
                 new MySqlParameter("@CreatedAt", DateTime.Now),
                 new MySqlParameter("@UpdatedAt", DateTime.Now));
@@ -141,8 +133,8 @@ public class ArticleService : IArticleRepository
         {
             var query = @"UPDATE Articles SET Name = @Name, Description = @Description,
                 Price = @Price, CostPrice = @CostPrice, StockLevel = @StockLevel,
-                MinimumStock = @MinimumStock, Category = @Category, IsActive = @IsActive,
-                UpdatedAt = @UpdatedAt WHERE Id = @Id";
+                MinimumStock = @MinimumStock, Category = @Category, PricingMode = @PricingMode,
+                IsActive = @IsActive, UpdatedAt = @UpdatedAt WHERE Id = @Id";
 
             var result = await _db.ExecuteNonQueryAsync(query,
                 new MySqlParameter("@Name", article.Name),
@@ -152,6 +144,7 @@ public class ArticleService : IArticleRepository
                 new MySqlParameter("@StockLevel", article.StockLevel),
                 new MySqlParameter("@MinimumStock", article.MinimumStock),
                 new MySqlParameter("@Category", article.Category),
+                new MySqlParameter("@PricingMode", string.IsNullOrWhiteSpace(article.PricingMode) ? "Fixed" : article.PricingMode),
                 new MySqlParameter("@IsActive", article.IsActive),
                 new MySqlParameter("@UpdatedAt", DateTime.Now),
                 new MySqlParameter("@Id", article.Id));
@@ -166,10 +159,6 @@ public class ArticleService : IArticleRepository
         }
     }
 
-    /// <summary>
-    /// Atomically adjusts stock by a delta (negative to decrement on sale, positive to
-    /// restock). Guards against selling below zero.
-    /// </summary>
     public async Task<bool> AdjustStockAsync(int articleId, int delta)
     {
         try
@@ -220,6 +209,9 @@ public class ArticleService : IArticleRepository
             StockLevel = Convert.ToInt32(row["StockLevel"]),
             MinimumStock = Convert.ToInt32(row["MinimumStock"]),
             Category = row["Category"]?.ToString() ?? string.Empty,
+            PricingMode = row.ContainsKey("PricingMode") && row["PricingMode"] != null && row["PricingMode"] != DBNull.Value
+                ? row["PricingMode"]?.ToString() ?? "Fixed"
+                : "Fixed",
             IsActive = Convert.ToBoolean(row["IsActive"]),
             CreatedAt = Convert.ToDateTime(row["CreatedAt"]),
             UpdatedAt = Convert.ToDateTime(row["UpdatedAt"])
