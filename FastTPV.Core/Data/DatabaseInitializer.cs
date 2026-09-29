@@ -25,6 +25,7 @@ public static class DatabaseInitializer
                 StockLevel INT NOT NULL DEFAULT 0,
                 MinimumStock INT NOT NULL DEFAULT 0,
                 Category VARCHAR(100),
+                PricingMode VARCHAR(20) NOT NULL DEFAULT 'Fixed',
                 IsActive BOOLEAN NOT NULL DEFAULT TRUE,
                 CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
                 UpdatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -38,14 +39,13 @@ public static class DatabaseInitializer
                 Phone VARCHAR(20),
                 Address VARCHAR(255),
                 City VARCHAR(100),
-                ZipCode VARCHAR(10),
+                ZipCode VARCHAR(20),
                 TaxId VARCHAR(50),
                 CreditLimit DECIMAL(10, 2) NOT NULL DEFAULT 0,
                 CurrentDebt DECIMAL(10, 2) NOT NULL DEFAULT 0,
                 IsActive BOOLEAN NOT NULL DEFAULT TRUE,
                 CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-                UpdatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                INDEX(Code), INDEX(Email)
+                UpdatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
             )",
             @"CREATE TABLE IF NOT EXISTS Sales (
                 Id INT AUTO_INCREMENT PRIMARY KEY,
@@ -60,17 +60,16 @@ public static class DatabaseInitializer
                 Status VARCHAR(20) NOT NULL DEFAULT 'Completed',
                 Notes TEXT,
                 SalesmanId INT NULL,
-                CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-                INDEX(TicketNumber), INDEX(SaleDate)
+                CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
             )",
             @"CREATE TABLE IF NOT EXISTS SaleLineItems (
                 Id INT AUTO_INCREMENT PRIMARY KEY,
                 SaleId INT NOT NULL,
                 ArticleId INT NOT NULL,
                 ArticleName VARCHAR(255),
-                Quantity INT NOT NULL,
-                UnitPrice DECIMAL(10, 2) NOT NULL,
-                LineTotal DECIMAL(10, 2) NOT NULL,
+                Quantity INT NOT NULL DEFAULT 1,
+                UnitPrice DECIMAL(10, 2) NOT NULL DEFAULT 0,
+                LineTotal DECIMAL(10, 2) NOT NULL DEFAULT 0,
                 Discount DECIMAL(10, 2) NOT NULL DEFAULT 0,
                 INDEX(SaleId)
             )",
@@ -84,83 +83,68 @@ public static class DatabaseInitializer
                 IsActive BOOLEAN NOT NULL DEFAULT TRUE,
                 FailedLoginAttempts INT NOT NULL DEFAULT 0,
                 LockedUntil DATETIME NULL,
-                CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-                INDEX(UserName)
+                CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
             )",
             @"CREATE TABLE IF NOT EXISTS AuditLog (
                 Id INT AUTO_INCREMENT PRIMARY KEY,
-                UserId INT NOT NULL DEFAULT 0,
-                Action VARCHAR(50) NOT NULL,
-                Entity VARCHAR(50) NOT NULL,
-                Details VARCHAR(255),
-                CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-                INDEX(UserId), INDEX(CreatedAt)
+                UserId INT NULL,
+                UserName VARCHAR(50),
+                Action VARCHAR(100) NOT NULL,
+                Entity VARCHAR(100),
+                Details TEXT,
+                CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
             )",
             @"CREATE TABLE IF NOT EXISTS CashSessions (
                 Id INT AUTO_INCREMENT PRIMARY KEY,
-                UserId INT NOT NULL,
+                OpenedByUserId INT NULL,
                 OpenedAt DATETIME NOT NULL,
                 OpeningFloat DECIMAL(10, 2) NOT NULL DEFAULT 0,
                 ClosedAt DATETIME NULL,
-                CountedCash DECIMAL(10, 2) NULL,
+                ClosingCounted DECIMAL(10, 2) NULL,
                 ExpectedCash DECIMAL(10, 2) NULL,
                 Variance DECIMAL(10, 2) NULL,
-                Status VARCHAR(20) NOT NULL DEFAULT 'Open',
-                Notes VARCHAR(255),
-                INDEX(UserId), INDEX(Status)
+                Status VARCHAR(20) NOT NULL DEFAULT 'Open'
             )",
             @"CREATE TABLE IF NOT EXISTS CashMovements (
                 Id INT AUTO_INCREMENT PRIMARY KEY,
-                CashSessionId INT NOT NULL,
-                Type VARCHAR(10) NOT NULL,
+                SessionId INT NOT NULL,
+                Type VARCHAR(20) NOT NULL,
                 Amount DECIMAL(10, 2) NOT NULL,
                 Reason VARCHAR(255),
-                CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-                INDEX(CashSessionId)
+                CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
             )",
             @"CREATE TABLE IF NOT EXISTS Suppliers (
                 Id INT AUTO_INCREMENT PRIMARY KEY,
                 Code VARCHAR(50) UNIQUE NOT NULL,
                 Name VARCHAR(255) NOT NULL,
-                ContactName VARCHAR(255),
+                ContactName VARCHAR(100),
                 Email VARCHAR(255),
                 Phone VARCHAR(20),
                 TaxId VARCHAR(50),
                 Address VARCHAR(255),
                 IsActive BOOLEAN NOT NULL DEFAULT TRUE,
-                CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-                UpdatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                INDEX(Code)
+                CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
             )",
             @"CREATE TABLE IF NOT EXISTS StockMovements (
                 Id INT AUTO_INCREMENT PRIMARY KEY,
                 ArticleId INT NOT NULL,
-                ArticleCode VARCHAR(50),
-                ArticleName VARCHAR(255),
-                Quantity INT NOT NULL,
-                MovementType VARCHAR(20) NOT NULL DEFAULT 'Adjustment',
+                QuantityDelta INT NOT NULL,
                 Reason VARCHAR(255),
-                UserId INT NOT NULL DEFAULT 0,
-                Reference VARCHAR(100),
                 CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-                INDEX(ArticleId), INDEX(CreatedAt)
+                CreatedByUserId INT NULL
             )",
             @"CREATE TABLE IF NOT EXISTS Payments (
                 Id INT AUTO_INCREMENT PRIMARY KEY,
                 SaleId INT NOT NULL,
-                Method VARCHAR(50) NOT NULL DEFAULT 'Cash',
+                Method VARCHAR(50) NOT NULL,
                 Amount DECIMAL(10, 2) NOT NULL,
-                `Change` DECIMAL(10, 2) NOT NULL DEFAULT 0,
+                ChangeAmount DECIMAL(10, 2) NOT NULL DEFAULT 0,
                 Reference VARCHAR(100),
-                CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-                INDEX(SaleId)
+                CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
             )",
             @"CREATE TABLE IF NOT EXISTS Categories (
                 Id INT AUTO_INCREMENT PRIMARY KEY,
-                Name VARCHAR(100) UNIQUE NOT NULL,
-                Description VARCHAR(255),
-                IsActive BOOLEAN NOT NULL DEFAULT TRUE,
-                CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
+                Name VARCHAR(100) UNIQUE NOT NULL
             )"
         };
 
@@ -176,6 +160,7 @@ public static class DatabaseInitializer
         await TryAlterAsync(db, "ALTER TABLE Sales ADD COLUMN TicketDiscountAmount DECIMAL(10, 2) NOT NULL DEFAULT 0");
         await TryAlterAsync(db, "ALTER TABLE Users ADD COLUMN FailedLoginAttempts INT NOT NULL DEFAULT 0");
         await TryAlterAsync(db, "ALTER TABLE Users ADD COLUMN LockedUntil DATETIME NULL");
+        await TryAlterAsync(db, "ALTER TABLE Articles ADD COLUMN PricingMode VARCHAR(20) NOT NULL DEFAULT 'Fixed'");
 
         Logger.Information("Database schema verified/created");
     }
