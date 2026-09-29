@@ -1,10 +1,24 @@
-<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" x:Class="FastTPV.Desktop.Features.LoginWindow" Width="420" Height="360" CanResize="False" WindowStartupLocation="CenterScreen" Title="FastTPV - Sign in">
-  <StackPanel Margin="40" Spacing="14">
-    <TextBlock Text="FastTPV" FontSize="30" FontWeight="Bold" Foreground="#1F2937"/>
-    <TextBlock Text="Sign in to continue" Foreground="#64748B"/>
-    <TextBox x:Name="UserName" Watermark="Username" Margin="0,18,0,0"/>
-    <TextBox x:Name="Password" Watermark="Password" PasswordChar="*"/>
-    <TextBlock x:Name="Message" Foreground="#B91C1C" TextWrapping="Wrap"/>
-    <Button Content="Sign in" Click="SignIn" HorizontalContentAlignment="Center" Padding="12" Background="#2563EB" Foreground="White"/>
-  </StackPanel>
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="FastTPV.Desktop.Features.LoginWindow"
+        Width="440" Height="480" CanResize="False"
+        WindowStartupLocation="CenterScreen"
+        Title="FastTPV - Sign in"
+        RequestedThemeVariant="Dark"
+        Classes="app">
+  <Border Classes="card" Margin="28" Padding="32">
+    <StackPanel Spacing="14">
+      <Border Width="48" Height="48" CornerRadius="12" Background="{DynamicResource PrimaryGradient}" HorizontalAlignment="Left">
+        <Path Data="{StaticResource IconCart}" Stretch="Uniform" Width="22" Height="22"
+              Stroke="White" StrokeThickness="2" StrokeLineCap="Round" StrokeJoin="Round"
+              HorizontalAlignment="Center" VerticalAlignment="Center"/>
+      </Border>
+      <TextBlock Text="FastTPV" Classes="h1"/>
+      <TextBlock Text="Sign in to continue" Classes="muted"/>
+      <TextBox x:Name="UserName" Classes="field" Watermark="Username" Margin="0,8,0,0"/>
+      <TextBox x:Name="Password" Classes="field" Watermark="Password" PasswordChar="*"/>
+      <TextBlock x:Name="Message" Foreground="{DynamicResource DangerBrush}" TextWrapping="Wrap"/>
+      <Button Content="Sign in" Click="SignIn" Classes="primary" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
+    </StackPanel>
+  </Border>
 </Window>
