@@ -36,19 +36,16 @@ public class CartLineViewModel : ViewModelBase
 
     private decimal _discountAmount;
     public decimal DiscountAmount => _discountAmount;
-
     public decimal LineTotal => (UnitPrice * Quantity) - _discountAmount;
 
-    public CartLineViewModel(Article article, int quantity)
+    public CartLineViewModel(Article article, int quantity, decimal? unitPriceOverride = null)
     {
         ArticleId = article.Id;
         ArticleName = article.Name;
-        UnitPrice = article.Price;
+        UnitPrice = unitPriceOverride ?? article.Price;
         AvailableStock = article.StockLevel;
         Quantity = quantity;
-
-        this.WhenAnyValue(x => x.Quantity)
-            .Subscribe(_ => this.RaisePropertyChanged(nameof(LineTotal)));
+        this.WhenAnyValue(x => x.Quantity).Subscribe(_ => this.RaisePropertyChanged(nameof(LineTotal)));
     }
 
     public void SetDiscountAmount(decimal amount)
@@ -130,6 +127,42 @@ public class SalesWindowViewModel : ViewModelBase
         private set => this.RaiseAndSetIfChanged(ref _ticketDiscountAmount, value);
     }
 
+    private string _keypadBuffer = "";
+    public string KeypadBuffer
+    {
+        get => _keypadBuffer;
+        set => this.RaiseAndSetIfChanged(ref _keypadBuffer, value);
+    }
+
+    private string _keypadPrompt = "Qty / amount";
+    public string KeypadPrompt
+    {
+        get => _keypadPrompt;
+        set => this.RaiseAndSetIfChanged(ref _keypadPrompt, value);
+    }
+
+    private string _keypadTarget = "Quantity";
+    public string KeypadTarget
+    {
+        get => _keypadTarget;
+        set
+        {
+            this.RaiseAndSetIfChanged(ref _keypadTarget, value);
+            KeypadPrompt = value switch
+            {
+                "OpenPrice" => _pendingOpenPriceArticle is null
+                    ? "Enter price"
+                    : $"Price for {_pendingOpenPriceArticle.Name}",
+                "TicketDiscount" => "Ticket discount %",
+                "Cash" => "Cash tendered",
+                "Card" => "Card tendered",
+                _ => "Qty (then tap product)"
+            };
+        }
+    }
+
+    private Article? _pendingOpenPriceArticle;
+
     private string _cashTenderedText = "";
     public string CashTenderedText
     {
@@ -163,6 +196,11 @@ public class SalesWindowViewModel : ViewModelBase
     public decimal Total => TaxableBase + Tax;
 
     public ReactiveCommand<Article, Unit> AddToCartCommand { get; }
+    public ReactiveCommand<string, Unit> KeypadDigitCommand { get; }
+    public ReactiveCommand<Unit, Unit> KeypadClearCommand { get; }
+    public ReactiveCommand<Unit, Unit> KeypadBackspaceCommand { get; }
+    public ReactiveCommand<Unit, Unit> KeypadEnterCommand { get; }
+    public ReactiveCommand<string, Unit> SetKeypadTargetCommand { get; }
     public ReactiveCommand<CartLineViewModel, Unit> IncrementLineCommand { get; }
     public ReactiveCommand<CartLineViewModel, Unit> DecrementLineCommand { get; }
     public ReactiveCommand<CartLineViewModel, Unit> RemoveLineCommand { get; }
@@ -184,6 +222,15 @@ public class SalesWindowViewModel : ViewModelBase
         CartItems.CollectionChanged += (_, _) => RaiseTotalsChanged();
 
         AddToCartCommand = ReactiveCommand.Create<Article>(AddToCart);
+        KeypadDigitCommand = ReactiveCommand.Create<string>(KeypadDigit);
+        KeypadClearCommand = ReactiveCommand.Create(KeypadClear);
+        KeypadBackspaceCommand = ReactiveCommand.Create(KeypadBackspace);
+        KeypadEnterCommand = ReactiveCommand.Create(KeypadEnter);
+        SetKeypadTargetCommand = ReactiveCommand.Create<string>(t =>
+        {
+            KeypadTarget = t;
+            KeypadBuffer = "";
+        });
         IncrementLineCommand = ReactiveCommand.Create<CartLineViewModel>(line =>
         {
             if (line.Quantity < line.AvailableStock) line.Quantity++;
@@ -236,21 +283,138 @@ public class SalesWindowViewModel : ViewModelBase
             return;
         }
 
-        var existing = CartItems.FirstOrDefault(c => c.ArticleId == article.Id);
+        if (article.IsOpenPrice)
+        {
+            _pendingOpenPriceArticle = article;
+            KeypadTarget = "OpenPrice";
+            KeypadBuffer = "";
+            StatusMessage = $"Enter price for {article.Name} on the keypad, then Enter.";
+            return;
+        }
+
+        var qty = 1;
+        if (KeypadTarget == "Quantity"
+            && !string.IsNullOrWhiteSpace(KeypadBuffer)
+            && int.TryParse(KeypadBuffer, out var typedQty)
+            && typedQty > 0)
+        {
+            qty = typedQty;
+            KeypadBuffer = "";
+        }
+
+        AddFixedLine(article, qty, unitPriceOverride: null);
+    }
+
+    private void AddFixedLine(Article article, int quantity, decimal? unitPriceOverride)
+    {
+        if (quantity <= 0) quantity = 1;
+        if (quantity > article.StockLevel)
+        {
+            StatusMessage = $"Only {article.StockLevel} of {article.Name} in stock.";
+            return;
+        }
+
+        var merge = unitPriceOverride is null;
+        var existing = merge
+            ? CartItems.FirstOrDefault(c => c.ArticleId == article.Id)
+            : null;
+
         if (existing != null)
         {
-            if (existing.Quantity < existing.AvailableStock)
-                existing.Quantity++;
+            if (existing.Quantity + quantity <= existing.AvailableStock)
+                existing.Quantity += quantity;
             else
                 StatusMessage = $"Only {existing.AvailableStock} of {article.Name} in stock.";
         }
         else
         {
-            CartItems.Add(new CartLineViewModel(article, 1));
+            CartItems.Add(new CartLineViewModel(article, quantity, unitPriceOverride));
         }
 
         StatusMessage = string.Empty;
         RaiseTotalsChanged();
+    }
+
+    private void KeypadDigit(string digit)
+    {
+        if (digit == "." || digit == ",")
+        {
+            if (KeypadBuffer.Contains('.') || KeypadBuffer.Contains(','))
+                return;
+            KeypadBuffer += ".";
+            return;
+        }
+        if (KeypadBuffer.Length >= 12) return;
+        KeypadBuffer += digit;
+    }
+
+    private void KeypadClear()
+    {
+        KeypadBuffer = "";
+        if (KeypadTarget == "OpenPrice")
+        {
+            _pendingOpenPriceArticle = null;
+            KeypadTarget = "Quantity";
+            StatusMessage = "Open-price entry cancelled.";
+        }
+    }
+
+    private void KeypadBackspace()
+    {
+        if (KeypadBuffer.Length == 0) return;
+        KeypadBuffer = KeypadBuffer[..^1];
+    }
+
+    private void KeypadEnter()
+    {
+        var raw = KeypadBuffer.Trim().Replace(',', '.');
+        switch (KeypadTarget)
+        {
+            case "OpenPrice":
+                if (_pendingOpenPriceArticle is null)
+                {
+                    StatusMessage = "Select an open-price product first.";
+                    return;
+                }
+                if (!decimal.TryParse(raw, System.Globalization.NumberStyles.Number,
+                        System.Globalization.CultureInfo.InvariantCulture, out var price)
+                    || price <= 0)
+                {
+                    StatusMessage = "Enter a valid price greater than zero.";
+                    return;
+                }
+                var article = _pendingOpenPriceArticle;
+                _pendingOpenPriceArticle = null;
+                KeypadBuffer = "";
+                KeypadTarget = "Quantity";
+                AddFixedLine(article, 1, price);
+                StatusMessage = $"Added {article.Name} at {price:C}.";
+                break;
+
+            case "TicketDiscount":
+                TicketDiscountPercentText = string.IsNullOrWhiteSpace(raw) ? "0" : raw;
+                KeypadBuffer = "";
+                _ = ApplyTicketDiscountAsync();
+                break;
+
+            case "Cash":
+                CashTenderedText = raw;
+                KeypadBuffer = "";
+                StatusMessage = $"Cash tendered: {CashTenderedText}";
+                break;
+
+            case "Card":
+                CardTenderedText = raw;
+                KeypadBuffer = "";
+                StatusMessage = $"Card tendered: {CardTenderedText}";
+                break;
+
+            default:
+                StatusMessage = string.IsNullOrWhiteSpace(raw)
+                    ? "Type a quantity, then tap a product."
+                    : $"Qty {raw} ready — tap a product.";
+                break;
+        }
     }
 
     public void TryQuickAddByCode()
@@ -444,11 +608,10 @@ public class SalesWindowViewModel : ViewModelBase
         var sale = new Sale
         {
             TicketNumber = ticketNumber,
-            CustomerId = SelectedCustomer is { Id: > 0 } ? SelectedCustomer.Id : null,
-            CustomerName = SelectedCustomer?.Name ?? "Walk-in Customer",
+            CustomerId = SelectedCustomer is { Id: > 0 } ? SelectedCustomer.Id : 0,
             SaleDate = DateTime.Now,
-            Subtotal = Subtotal,
-            TaxAmount = Tax,
+            SubTotal = Subtotal,
+            Tax = Tax,
             TotalAmount = Total,
             TicketDiscountAmount = TicketDiscountAmount,
             PaymentMethod = paymentMethod,
