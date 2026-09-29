@@ -150,9 +150,7 @@ public class SalesWindowViewModel : ViewModelBase
             this.RaiseAndSetIfChanged(ref _keypadTarget, value);
             KeypadPrompt = value switch
             {
-                "OpenPrice" => _pendingOpenPriceArticle is null
-                    ? "Enter price"
-                    : $"Price for {_pendingOpenPriceArticle.Name}",
+                "OpenPrice" => _pendingOpenPriceArticle is null ? "Enter price" : $"Price for {_pendingOpenPriceArticle.Name}",
                 "TicketDiscount" => "Ticket discount %",
                 "Cash" => "Cash tendered",
                 "Card" => "Card tendered",
@@ -182,7 +180,6 @@ public class SalesWindowViewModel : ViewModelBase
 
     public decimal SplitTenderedTotal => ParsedCashTendered + ParsedCardTendered;
     public decimal SplitBalance => SplitTenderedTotal - Total;
-
     public string SplitStatusText => SplitBalance switch
     {
         > 0 => $"Tendered {SplitTenderedTotal:C} - change due {SplitBalance:C}",
@@ -226,11 +223,7 @@ public class SalesWindowViewModel : ViewModelBase
         KeypadClearCommand = ReactiveCommand.Create(KeypadClear);
         KeypadBackspaceCommand = ReactiveCommand.Create(KeypadBackspace);
         KeypadEnterCommand = ReactiveCommand.Create(KeypadEnter);
-        SetKeypadTargetCommand = ReactiveCommand.Create<string>(t =>
-        {
-            KeypadTarget = t;
-            KeypadBuffer = "";
-        });
+        SetKeypadTargetCommand = ReactiveCommand.Create<string>(t => { KeypadTarget = t; KeypadBuffer = ""; });
         IncrementLineCommand = ReactiveCommand.Create<CartLineViewModel>(line =>
         {
             if (line.Quantity < line.AvailableStock) line.Quantity++;
@@ -302,7 +295,7 @@ public class SalesWindowViewModel : ViewModelBase
             KeypadBuffer = "";
         }
 
-        AddFixedLine(article, qty, unitPriceOverride: null);
+        AddFixedLine(article, qty, null);
     }
 
     private void AddFixedLine(Article article, int quantity, decimal? unitPriceOverride)
@@ -315,9 +308,7 @@ public class SalesWindowViewModel : ViewModelBase
         }
 
         var merge = unitPriceOverride is null;
-        var existing = merge
-            ? CartItems.FirstOrDefault(c => c.ArticleId == article.Id)
-            : null;
+        var existing = merge ? CartItems.FirstOrDefault(c => c.ArticleId == article.Id) : null;
 
         if (existing != null)
         {
@@ -339,8 +330,7 @@ public class SalesWindowViewModel : ViewModelBase
     {
         if (digit == "." || digit == ",")
         {
-            if (KeypadBuffer.Contains('.') || KeypadBuffer.Contains(','))
-                return;
+            if (KeypadBuffer.Contains('.') || KeypadBuffer.Contains(',')) return;
             KeypadBuffer += ".";
             return;
         }
@@ -377,8 +367,7 @@ public class SalesWindowViewModel : ViewModelBase
                     return;
                 }
                 if (!decimal.TryParse(raw, System.Globalization.NumberStyles.Number,
-                        System.Globalization.CultureInfo.InvariantCulture, out var price)
-                    || price <= 0)
+                        System.Globalization.CultureInfo.InvariantCulture, out var price) || price <= 0)
                 {
                     StatusMessage = "Enter a valid price greater than zero.";
                     return;
@@ -390,25 +379,21 @@ public class SalesWindowViewModel : ViewModelBase
                 AddFixedLine(article, 1, price);
                 StatusMessage = $"Added {article.Name} at {price:C}.";
                 break;
-
             case "TicketDiscount":
                 TicketDiscountPercentText = string.IsNullOrWhiteSpace(raw) ? "0" : raw;
                 KeypadBuffer = "";
                 _ = ApplyTicketDiscountAsync();
                 break;
-
             case "Cash":
                 CashTenderedText = raw;
                 KeypadBuffer = "";
                 StatusMessage = $"Cash tendered: {CashTenderedText}";
                 break;
-
             case "Card":
                 CardTenderedText = raw;
                 KeypadBuffer = "";
                 StatusMessage = $"Card tendered: {CardTenderedText}";
                 break;
-
             default:
                 StatusMessage = string.IsNullOrWhiteSpace(raw)
                     ? "Type a quantity, then tap a product."
@@ -421,16 +406,12 @@ public class SalesWindowViewModel : ViewModelBase
     {
         var code = SearchText?.Trim();
         if (string.IsNullOrEmpty(code)) return;
-
-        var match = Products.FirstOrDefault(a =>
-            string.Equals(a.Code, code, StringComparison.OrdinalIgnoreCase));
-
+        var match = Products.FirstOrDefault(a => string.Equals(a.Code, code, StringComparison.OrdinalIgnoreCase));
         if (match is null)
         {
             StatusMessage = $"No product found for code '{code}'.";
             return;
         }
-
         AddToCart(match);
         SearchText = string.Empty;
     }
@@ -442,7 +423,6 @@ public class SalesWindowViewModel : ViewModelBase
             StatusMessage = "Enter a line discount between 0 and 100%.";
             return;
         }
-
         if (percent > AppRuntime.Settings.MaxCashierDiscountPercent &&
             AppRuntime.Session.CurrentUser?.Role != Roles.Admin)
         {
@@ -453,13 +433,10 @@ public class SalesWindowViewModel : ViewModelBase
                 return;
             }
         }
-
         var amount = Math.Round(line.UnitPrice * line.Quantity * (percent / 100m), 2);
         line.SetDiscountAmount(amount);
         RaiseTotalsChanged();
-        StatusMessage = percent > 0
-            ? $"{percent}% discount applied to {line.ArticleName}."
-            : $"Discount removed from {line.ArticleName}.";
+        StatusMessage = percent > 0 ? $"{percent}% discount applied to {line.ArticleName}." : $"Discount removed from {line.ArticleName}.";
     }
 
     private async Task ApplyTicketDiscountAsync()
@@ -469,7 +446,6 @@ public class SalesWindowViewModel : ViewModelBase
             StatusMessage = "Enter a ticket discount between 0 and 100%.";
             return;
         }
-
         if (percent > AppRuntime.Settings.MaxCashierDiscountPercent &&
             AppRuntime.Session.CurrentUser?.Role != Roles.Admin)
         {
@@ -480,7 +456,6 @@ public class SalesWindowViewModel : ViewModelBase
                 return;
             }
         }
-
         TicketDiscountAmount = Math.Round(Subtotal * (percent / 100m), 2);
         RaiseTotalsChanged();
         StatusMessage = percent > 0 ? $"{percent}% ticket discount applied." : "Ticket discount removed.";
@@ -595,8 +570,7 @@ public class SalesWindowViewModel : ViewModelBase
                 new Dictionary<string, decimal> { ["Cash"] = cash, ["Card"] = card });
             CashTenderedText = "";
             CardTenderedText = "";
-            FinishAfterSale(sale.TicketNumber,
-                $"Sale {sale.TicketNumber} completed (split) - {Total:C}. Change due: {change:C}.");
+            FinishAfterSale(sale.TicketNumber, $"Sale {sale.TicketNumber} completed (split) - {Total:C}. Change due: {change:C}.");
         }
         finally { IsBusy = false; }
     }
@@ -604,7 +578,7 @@ public class SalesWindowViewModel : ViewModelBase
     private async Task<Sale?> PersistSaleAsync(string paymentMethod)
     {
         if (CartItems.Count == 0) return null;
-        var ticketNumber = await _saleService.GenerateTicketNumberAsync();
+        var ticketNumber = await _saleService.GenerateNextTicketNumberAsync();
         var sale = new Sale
         {
             TicketNumber = ticketNumber,
