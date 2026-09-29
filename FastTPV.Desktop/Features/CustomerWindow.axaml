@@ -1,36 +1,56 @@
-<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" x:Class="FastTPV.Desktop.Features.CustomerWindow" Width="1100" Height="700" Title="Customers" WindowStartupLocation="CenterOwner">
-  <Grid RowDefinitions="Auto,*" ColumnDefinitions="2*,3*" Margin="24">
-    <StackPanel Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="12" Margin="0,0,0,18">
-      <TextBlock Text="Customers" FontSize="26" FontWeight="Bold" VerticalAlignment="Center"/>
-      <TextBox x:Name="Search" Width="280" Watermark="Search name, code or email" TextChanged="SearchChanged"/>
-      <Button Content="New customer" Click="NewCustomer" Padding="16,8" Background="#2563EB" Foreground="White"/>
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="FastTPV.Desktop.Features.CustomerWindow"
+        Width="1100" Height="700" Title="Customers"
+        WindowStartupLocation="CenterOwner"
+        RequestedThemeVariant="Dark"
+        Classes="app">
+  <Grid RowDefinitions="Auto,*" ColumnDefinitions="2*,3*" Margin="24" RowSpacing="16" ColumnSpacing="18">
+    <StackPanel Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="12">
+      <TextBlock Text="Customers" Classes="h1" VerticalAlignment="Center"/>
+      <TextBox x:Name="Search" Classes="field" Width="280" Watermark="Search name, code or email" TextChanged="SearchChanged"/>
+      <Button Content="New customer" Click="NewCustomer" Classes="primary"/>
     </StackPanel>
-    <ListBox x:Name="CustomerList" Grid.Row="1" SelectionChanged="CustomerSelected" Margin="0,0,18,0">
-      <ListBox.ItemTemplate><DataTemplate><StackPanel Margin="10,8"><TextBlock Text="{Binding Name}" FontWeight="Bold"/><TextBlock Text="{Binding Code}" Foreground="#64748B"/><TextBlock Text="{Binding Email}" Foreground="#64748B" FontSize="12"/></StackPanel></DataTemplate></ListBox.ItemTemplate>
-    </ListBox>
-    <Border Grid.Row="1" Grid.Column="1" Padding="22" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1">
-      <ScrollViewer><StackPanel Spacing="10">
-        <TextBlock Text="Customer details" FontSize="20" FontWeight="Bold"/>
-        <TextBox x:Name="Code" Watermark="Code" IsReadOnly="True"/>
-        <TextBox x:Name="Name" Watermark="Name *"/>
-        <Grid ColumnDefinitions="*,*">
-          <TextBox x:Name="Email" Watermark="Email" Margin="0,0,5,0"/>
-          <TextBox x:Name="Phone" Grid.Column="1" Watermark="Phone" Margin="5,0,0,0"/>
-        </Grid>
-        <TextBox x:Name="Address" Watermark="Address"/>
-        <Grid ColumnDefinitions="*,*">
-          <TextBox x:Name="City" Watermark="City" Margin="0,0,5,0"/>
-          <TextBox x:Name="ZipCode" Grid.Column="1" Watermark="ZIP code" Margin="5,0,0,0"/>
-        </Grid>
-        <TextBox x:Name="TaxId" Watermark="Tax ID"/>
-        <Grid ColumnDefinitions="*,*">
-          <TextBox x:Name="CreditLimit" Watermark="Credit limit" Margin="0,0,5,0"/>
-          <TextBox x:Name="CurrentDebt" Grid.Column="1" Watermark="Current debt" IsReadOnly="True" Margin="5,0,0,0"/>
-        </Grid>
-        <CheckBox x:Name="IsActive" Content="Active" IsChecked="True"/>
-        <TextBlock x:Name="Message" Foreground="#B91C1C" TextWrapping="Wrap"/>
-        <StackPanel Orientation="Horizontal" Spacing="10"><Button Content="Save" Click="Save" Padding="18,8" Background="#16A34A" Foreground="White"/><Button Content="Delete" Click="Delete" Padding="18,8" Background="#DC2626" Foreground="White"/></StackPanel>
-      </StackPanel></ScrollViewer>
+    <Border Grid.Row="1" Classes="panel" CornerRadius="14" Padding="8">
+      <ListBox x:Name="CustomerList" SelectionChanged="CustomerSelected" Background="Transparent" BorderThickness="0">
+        <ListBox.ItemTemplate>
+          <DataTemplate>
+            <StackPanel Margin="10,8" Spacing="2">
+              <TextBlock Text="{Binding Name}" FontWeight="Bold"/>
+              <TextBlock Text="{Binding Code}" Classes="muted" FontSize="12"/>
+              <TextBlock Text="{Binding Email}" Classes="dim" FontSize="12"/>
+            </StackPanel>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+    </Border>
+    <Border Grid.Row="1" Grid.Column="1" Classes="card" Padding="22">
+      <ScrollViewer>
+        <StackPanel Spacing="10">
+          <TextBlock Text="Customer details" Classes="h2"/>
+          <TextBox x:Name="Code" Classes="field" Watermark="Code" IsReadOnly="True"/>
+          <TextBox x:Name="Name" Classes="field" Watermark="Name *"/>
+          <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+            <TextBox x:Name="Email" Classes="field" Watermark="Email"/>
+            <TextBox x:Name="Phone" Grid.Column="1" Classes="field" Watermark="Phone"/>
+          </Grid>
+          <TextBox x:Name="Address" Classes="field" Watermark="Address"/>
+          <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+            <TextBox x:Name="City" Classes="field" Watermark="City"/>
+            <TextBox x:Name="ZipCode" Grid.Column="1" Classes="field" Watermark="ZIP code"/>
+          </Grid>
+          <TextBox x:Name="TaxId" Classes="field" Watermark="Tax ID"/>
+          <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+            <TextBox x:Name="CreditLimit" Classes="field" Watermark="Credit limit"/>
+            <TextBox x:Name="CurrentDebt" Grid.Column="1" Classes="field" Watermark="Current debt" IsReadOnly="True"/>
+          </Grid>
+          <CheckBox x:Name="IsActive" Content="Active" IsChecked="True"/>
+          <TextBlock x:Name="Message" Foreground="{DynamicResource DangerBrush}" TextWrapping="Wrap"/>
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <Button Content="Save" Click="Save" Classes="cash" Padding="18,10"/>
+          </StackPanel>
+        </StackPanel>
+      </ScrollViewer>
     </Border>
   </Grid>
 </Window>
