@@ -3,8 +3,21 @@
              x:Class="FastTPV.Desktop.App"
              RequestedThemeVariant="Light">
 
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="avares://FastTPV.Desktop/Styles/Tokens.axaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Application.Resources>
+
     <Application.Styles>
         <FluentTheme />
         <StyleInclude Source="avares://Avalonia.Controls.DataGrid/Themes/Fluent.xaml" />
+        <!--
+          Theme.axaml only targets Classes="app"/"card"/"btn"/etc, so it has no effect
+          on windows that don't opt in — Inventory, Customers, etc. keep their current look.
+        -->
+        <StyleInclude Source="avares://FastTPV.Desktop/Styles/Theme.axaml" />
     </Application.Styles>
 </Application>
