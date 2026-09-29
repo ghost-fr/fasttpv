@@ -1,50 +1,59 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:FastTPV.Desktop.ViewModels"
+        xmlns:conv="using:FastTPV.Desktop.Converters"
         x:Class="FastTPV.Desktop.Views.SalesWindow"
         x:DataType="vm:SalesWindowViewModel"
         Title="Sales / POS Module"
         WindowState="Maximized"
-        Background="#F5F5F5">
+        RequestedThemeVariant="Dark"
+        Classes="app">
 
-    <Grid RowDefinitions="60,*,Auto" ColumnDefinitions="300,*,380">
-        <!-- Header -->
-        <Border Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3" Background="#2D2D2D" Padding="20,0">
-            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                <TextBlock Text="🛒 Sales Point of Sale" FontSize="18" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
-                <TextBlock Text="{Binding StatusMessage}" FontSize="12" Foreground="#B0B0B0" VerticalAlignment="Center" Margin="20,0,0,0"/>
-            </StackPanel>
-        </Border>
+    <Window.Resources>
+        <conv:LowStockConverter x:Key="LowStock"/>
+        <conv:StockLabelConverter x:Key="StockLabel"/>
+    </Window.Resources>
 
-        <!-- Left Panel: Search and Filter -->
-        <Border Grid.Row="1" Grid.Column="0" Background="White" BorderThickness="0,1,1,0" BorderBrush="#E0E0E0" Padding="15">
-            <StackPanel>
-                <TextBlock Text="Search / Scan" FontWeight="Bold" Margin="0,0,0,10"/>
-                <TextBox x:Name="SearchBox" Watermark="Search by name or code, or scan a barcode..." Padding="10" Margin="0,0,0,10"
-                         Text="{Binding SearchText}" KeyDown="SearchKeyDown"/>
+    <Grid RowDefinitions="*,Auto" ColumnDefinitions="*,420">
 
-                <TextBlock Text="Categories" FontWeight="Bold" Margin="0,15,0,10"/>
-                <ListBox ItemsSource="{Binding Categories}" SelectedItem="{Binding SelectedCategory}" Height="150"/>
+        <!-- ===== Catalog (search, categories, product grid) ===== -->
+        <Grid Grid.Row="0" Grid.Column="0" RowDefinitions="Auto,Auto,*" Margin="24" RowSpacing="16">
 
-                <Separator Margin="0,15,0,15"/>
-
-                <TextBlock Text="Customer" FontWeight="Bold" Margin="0,0,0,10"/>
-                <ComboBox ItemsSource="{Binding Customers}" SelectedItem="{Binding SelectedCustomer}"
-                          HorizontalAlignment="Stretch">
+            <!-- Search + customer + status -->
+            <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                <Border Classes="panel" CornerRadius="14" Padding="4">
+                    <Grid ColumnDefinitions="Auto,*">
+                        <Path Grid.Column="0" Classes="icon" Data="{StaticResource IconSearch}" Margin="12,0,4,0"/>
+                        <TextBox Grid.Column="1" x:Name="SearchBox" Classes="field" BorderThickness="0" Background="Transparent"
+                                 Watermark="Search by name or code, or scan a barcode..."
+                                 Text="{Binding SearchText}" KeyDown="SearchKeyDown"/>
+                    </Grid>
+                </Border>
+                <ComboBox Grid.Column="1" Classes="field" MinWidth="220"
+                          ItemsSource="{Binding Customers}" SelectedItem="{Binding SelectedCustomer}">
                     <ComboBox.ItemTemplate>
                         <DataTemplate>
                             <TextBlock Text="{Binding Name}"/>
                         </DataTemplate>
                     </ComboBox.ItemTemplate>
                 </ComboBox>
-            </StackPanel>
-        </Border>
+            </Grid>
 
-        <!-- Center Panel: Products Grid -->
-        <Border Grid.Row="1" Grid.Column="1" Background="White" BorderThickness="0,1,1,0" BorderBrush="#E0E0E0" Padding="15">
-            <StackPanel>
-                <TextBlock Text="Available Products" FontWeight="Bold" Margin="0,0,0,10"/>
-                <ScrollViewer>
+            <!-- Status message from the view model (e.g. "N products loaded.") -->
+            <TextBlock Grid.Row="1" Text="{Binding StatusMessage}" Classes="muted" FontSize="12"/>
+
+            <!-- Categories as chips + product grid -->
+            <Grid Grid.Row="2" RowDefinitions="Auto,*" RowSpacing="16">
+                <ListBox Grid.Row="0" Classes="chips" ItemsSource="{Binding Categories}"
+                         SelectedItem="{Binding SelectedCategory}">
+                    <ListBox.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel/>
+                        </ItemsPanelTemplate>
+                    </ListBox.ItemsPanel>
+                </ListBox>
+
+                <ScrollViewer Grid.Row="1">
                     <ItemsControl ItemsSource="{Binding FilteredProducts}">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
@@ -53,56 +62,93 @@
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Border Background="#F9F9F9" BorderThickness="1" BorderBrush="#E0E0E0" CornerRadius="8" Padding="15" Width="180" Margin="5">
-                                    <StackPanel>
-                                        <TextBlock Text="{Binding Name}" FontWeight="Bold" TextAlignment="Center" TextWrapping="Wrap" Margin="0,0,0,5"/>
-                                        <TextBlock Text="{Binding Price, StringFormat='{}{0:C}'}" FontSize="16" FontWeight="Bold" Foreground="#4CAF50" TextAlignment="Center" Margin="0,0,0,5"/>
-                                        <TextBlock Text="{Binding StockLevel, StringFormat='Stock: {0}'}" FontSize="12" Foreground="#666" TextAlignment="Center" Margin="0,0,0,10"/>
-                                        <Button Content="Add to Cart" Background="#4CAF50" Foreground="White" Padding="10"
-                                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
-                                                Command="{Binding $parent[ItemsControl].((vm:SalesWindowViewModel)DataContext).AddToCartCommand}"
-                                                CommandParameter="{Binding}"/>
+                                <Button Classes="tile" Width="196" Margin="0,0,14,14"
+                                        Command="{Binding $parent[ItemsControl].((vm:SalesWindowViewModel)DataContext).AddToCartCommand}"
+                                        CommandParameter="{Binding}">
+                                    <StackPanel Spacing="10">
+                                        <Border Height="88" CornerRadius="12" Background="{DynamicResource ThumbGradient}">
+                                            <Path Classes="icon" Width="34" Height="34" Data="{StaticResource IconPackage}"
+                                                  HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                  Stroke="{DynamicResource CyanBrush}"/>
+                                        </Border>
+                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <TextBlock Grid.Column="0" Classes="price" Text="{Binding Price, StringFormat='{}{0:C}'}"/>
+                                            <Border Grid.Column="1" VerticalAlignment="Center"
+                                                    Classes="stockOk"
+                                                    Classes.stockLow="{Binding Converter={StaticResource LowStock}}">
+                                                <TextBlock Text="{Binding Converter={StaticResource StockLabel}}"
+                                                           FontSize="11" FontWeight="SemiBold"
+                                                           Foreground="{DynamicResource MutedBrush}"/>
+                                            </Border>
+                                        </Grid>
                                     </StackPanel>
-                                </Border>
+                                </Button>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
                 </ScrollViewer>
-            </StackPanel>
-        </Border>
+            </Grid>
+        </Grid>
 
-        <!-- Right Panel: Shopping Cart -->
-        <Border Grid.Row="1" Grid.Column="2" Background="White" BorderThickness="0,1,0,0" BorderBrush="#E0E0E0" Padding="15">
-            <Grid RowDefinitions="Auto,*,Auto">
-                <TextBlock Grid.Row="0" Text="Shopping Cart" FontWeight="Bold" Margin="0,0,0,10"/>
+        <!-- ===== Cart ===== -->
+        <Border Grid.Row="0" Grid.Column="1" Classes="panel" BorderThickness="1,0,0,0" Padding="24">
+            <Grid RowDefinitions="Auto,*,Auto" RowSpacing="14">
+
+                <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="Current sale" Classes="h1" FontSize="22"/>
+                        <TextBlock Text="{Binding LastTicketNumber, StringFormat='Last ticket: {0}'}" Classes="muted" FontSize="12"/>
+                    </StackPanel>
+                    <Button Grid.Column="1" Classes="danger" Command="{Binding ClearCartCommand}" VerticalAlignment="Top">
+                        <Path Classes="icon" Data="{StaticResource IconTrash}" Stroke="{DynamicResource DangerBrush}" Width="18" Height="18"/>
+                    </Button>
+                </Grid>
 
                 <ScrollViewer Grid.Row="1">
                     <ItemsControl ItemsSource="{Binding CartItems}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Border Background="#F9F9F9" CornerRadius="6" Padding="10" Margin="0,0,0,8">
-                                    <StackPanel>
-                                        <TextBlock Text="{Binding ArticleName}" FontWeight="Bold"/>
-                                        <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto" Margin="0,5,0,0">
-                                            <Button Grid.Column="0" Content="-" Width="28" Padding="0"
-                                                    Command="{Binding $parent[ItemsControl].((vm:SalesWindowViewModel)DataContext).DecrementLineCommand}"
-                                                    CommandParameter="{Binding}"/>
-                                            <TextBlock Grid.Column="1" Text="{Binding Quantity}" Width="30" TextAlignment="Center" VerticalAlignment="Center"/>
-                                            <Button Grid.Column="2" Content="+" Width="28" Padding="0"
-                                                    Command="{Binding $parent[ItemsControl].((vm:SalesWindowViewModel)DataContext).IncrementLineCommand}"
-                                                    CommandParameter="{Binding}"/>
-                                            <TextBlock Grid.Column="3" Text="{Binding LineTotal, StringFormat='{}{0:C}'}" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,10,0"/>
-                                            <Button Grid.Column="4" Content="✕" Width="28" Padding="0" Foreground="#FF5252" Background="Transparent" BorderThickness="0"
+                                <Border Background="{DynamicResource Surface2Brush}" CornerRadius="14" Padding="12" Margin="0,0,0,10">
+                                    <StackPanel Spacing="8">
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <TextBlock Grid.Column="0" Text="{Binding ArticleName}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                                            <Button Grid.Column="1" Classes="ghost" Padding="6"
                                                     Command="{Binding $parent[ItemsControl].((vm:SalesWindowViewModel)DataContext).RemoveLineCommand}"
-                                                    CommandParameter="{Binding}"/>
+                                                    CommandParameter="{Binding}">
+                                                <Path Classes="icon" Data="{StaticResource IconX}" Width="14" Height="14"/>
+                                            </Button>
                                         </Grid>
-                                        <Grid ColumnDefinitions="*,Auto" Margin="0,6,0,0">
-                                            <TextBox Text="{Binding DiscountPercentText}" Watermark="Disc %" FontSize="11" Padding="4"/>
-                                            <Button Grid.Column="1" Content="Apply %" FontSize="11" Padding="8,4" Margin="4,0,0,0"
+
+                                        <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto">
+                                            <Button Grid.Column="0" Classes="btn" Width="32" Height="32" Padding="0"
+                                                    Command="{Binding $parent[ItemsControl].((vm:SalesWindowViewModel)DataContext).DecrementLineCommand}"
+                                                    CommandParameter="{Binding}">
+                                                <Path Classes="icon" Data="{StaticResource IconMinus}" Width="14" Height="14"/>
+                                            </Button>
+                                            <TextBlock Grid.Column="1" Text="{Binding Quantity}" Width="34"
+                                                       TextAlignment="Center" VerticalAlignment="Center" FontWeight="Bold"/>
+                                            <Button Grid.Column="2" Classes="btn" Width="32" Height="32" Padding="0"
+                                                    Command="{Binding $parent[ItemsControl].((vm:SalesWindowViewModel)DataContext).IncrementLineCommand}"
+                                                    CommandParameter="{Binding}">
+                                                <Path Classes="icon" Data="{StaticResource IconPlus}" Width="14" Height="14"/>
+                                            </Button>
+                                            <TextBlock Grid.Column="4" Text="{Binding LineTotal, StringFormat='{}{0:C}'}"
+                                                       VerticalAlignment="Center" FontWeight="Bold"
+                                                       Foreground="{DynamicResource TextBrush}"/>
+                                        </Grid>
+
+                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                            <TextBox Grid.Column="0" Classes="field" Padding="10,6" MinHeight="0"
+                                                     Watermark="Line discount %" FontSize="12"
+                                                     Text="{Binding DiscountPercentText}"/>
+                                            <Button Grid.Column="1" Classes="btn" Padding="12,6" FontSize="12"
+                                                    Content="Apply"
                                                     Command="{Binding $parent[ItemsControl].((vm:SalesWindowViewModel)DataContext).SetLineDiscountCommand}"
                                                     CommandParameter="{Binding}"/>
                                         </Grid>
-                                        <TextBlock Text="{Binding DiscountAmount, StringFormat='Discount: -{0:C}'}" FontSize="10" Foreground="#DC2626"/>
+                                        <TextBlock Text="{Binding DiscountAmount, StringFormat='Discount: -{0:C}'}"
+                                                   FontSize="11" Foreground="{DynamicResource DangerBrush}"/>
                                     </StackPanel>
                                 </Border>
                             </DataTemplate>
@@ -110,59 +156,85 @@
                     </ItemsControl>
                 </ScrollViewer>
 
-                <StackPanel Grid.Row="2" Margin="0,10,0,0">
-                    <Separator Margin="0,0,0,10"/>
-                    <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,8">
-                        <TextBox Text="{Binding TicketDiscountPercentText}" Watermark="Whole-ticket discount %" Padding="8"/>
-                        <Button Grid.Column="1" Content="Apply" Padding="12,8" Margin="6,0,0,0" Command="{Binding ApplyTicketDiscountCommand}"/>
+                <!-- Totals + payment -->
+                <StackPanel Grid.Row="2" Spacing="10">
+                    <Border Height="1" Background="{DynamicResource LineBrush}"/>
+
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                        <TextBox Grid.Column="0" Classes="field" Padding="12,8" MinHeight="0"
+                                 Watermark="Ticket discount %" Text="{Binding TicketDiscountPercentText}"/>
+                        <Button Grid.Column="1" Classes="btn" Content="Apply" Command="{Binding ApplyTicketDiscountCommand}"/>
                     </Grid>
-                    <Grid ColumnDefinitions="120,*">
-                        <TextBlock Grid.Column="0" Text="Subtotal:"/>
-                        <TextBlock Grid.Column="1" Text="{Binding Subtotal, StringFormat='{}{0:C}'}" Foreground="#666" HorizontalAlignment="Right"/>
+
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Grid.Column="0" Text="Subtotal" Classes="muted"/>
+                        <TextBlock Grid.Column="1" Text="{Binding Subtotal, StringFormat='{}{0:C}'}" Classes="muted"/>
                     </Grid>
-                    <Grid ColumnDefinitions="120,*" Margin="0,5,0,5">
-                        <TextBlock Grid.Column="0" Text="Ticket discount:"/>
-                        <TextBlock Grid.Column="1" Text="{Binding TicketDiscountAmount, StringFormat='-{0:C}'}" Foreground="#DC2626" HorizontalAlignment="Right"/>
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Grid.Column="0" Text="Ticket discount" Classes="muted"/>
+                        <TextBlock Grid.Column="1" Text="{Binding TicketDiscountAmount, StringFormat='-{0:C}'}"
+                                   Foreground="{DynamicResource DangerBrush}"/>
                     </Grid>
-                    <Grid ColumnDefinitions="120,*" Margin="0,0,0,5">
-                        <TextBlock Grid.Column="0" Text="Tax:"/>
-                        <TextBlock Grid.Column="1" Text="{Binding Tax, StringFormat='{}{0:C}'}" Foreground="#666" HorizontalAlignment="Right"/>
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Grid.Column="0" Text="Tax" Classes="muted"/>
+                        <TextBlock Grid.Column="1" Text="{Binding Tax, StringFormat='{}{0:C}'}" Classes="muted"/>
                     </Grid>
-                    <Grid ColumnDefinitions="120,*">
-                        <TextBlock Grid.Column="0" Text="Total:" FontWeight="Bold"/>
-                        <TextBlock Grid.Column="1" Text="{Binding Total, StringFormat='{}{0:C}'}" FontSize="16" FontWeight="Bold" Foreground="#4CAF50" HorizontalAlignment="Right"/>
+
+                    <Border Height="1" Background="{DynamicResource LineBrush}"/>
+
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Grid.Column="0" Text="TOTAL" Classes="caption" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="1" Text="{Binding Total, StringFormat='{}{0:C}'}" Classes="total"/>
                     </Grid>
+
+                    <Grid ColumnDefinitions="*,*,*" ColumnSpacing="10">
+                        <Button Grid.Column="0" Classes="cash" Height="72"
+                                Command="{Binding CompleteSaleCommand}" CommandParameter="Cash">
+                            <StackPanel HorizontalAlignment="Center" Spacing="4">
+                                <Path Data="{StaticResource IconCash}" Stretch="Uniform" Width="22" Height="22"
+                                      Stroke="#052E16" StrokeThickness="2" StrokeLineCap="Round" StrokeJoin="Round"
+                                      HorizontalAlignment="Center"/>
+                                <TextBlock Text="Cash" HorizontalAlignment="Center" FontWeight="Bold"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Grid.Column="1" Classes="card" Height="72"
+                                Command="{Binding CompleteSaleCommand}" CommandParameter="Card">
+                            <StackPanel HorizontalAlignment="Center" Spacing="4">
+                                <Path Data="{StaticResource IconCard}" Stretch="Uniform" Width="22" Height="22"
+                                      Stroke="White" StrokeThickness="2" StrokeLineCap="Round" StrokeJoin="Round"
+                                      HorizontalAlignment="Center"/>
+                                <TextBlock Text="Card" HorizontalAlignment="Center" FontWeight="Bold"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Grid.Column="2" Classes="digital" Height="72"
+                                Command="{Binding CompleteSaleCommand}" CommandParameter="Digital">
+                            <StackPanel HorizontalAlignment="Center" Spacing="4">
+                                <Path Data="{StaticResource IconPhone}" Stretch="Uniform" Width="22" Height="22"
+                                      Stroke="White" StrokeThickness="2" StrokeLineCap="Round" StrokeJoin="Round"
+                                      HorizontalAlignment="Center"/>
+                                <TextBlock Text="Digital" HorizontalAlignment="Center" FontWeight="Bold"/>
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+
+                    <ToggleButton x:Name="SplitToggle" Classes="split" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center">
+                        <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+                            <Path Classes="icon" Data="{StaticResource IconSplit}" Width="16" Height="16"/>
+                            <TextBlock Text="Split payment"/>
+                        </StackPanel>
+                    </ToggleButton>
+
+                    <StackPanel Spacing="8" IsVisible="{Binding #SplitToggle.IsChecked}">
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                            <TextBox Grid.Column="0" Classes="field" Watermark="Cash amount" Text="{Binding CashTenderedText}"/>
+                            <TextBox Grid.Column="1" Classes="field" Watermark="Card amount" Text="{Binding CardTenderedText}"/>
+                        </Grid>
+                        <TextBlock Text="{Binding SplitStatusText}" Classes="muted" FontSize="12"/>
+                        <Button Classes="primary" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                                Content="Complete split payment" Command="{Binding CompleteSplitSaleCommand}"/>
+                    </StackPanel>
                 </StackPanel>
             </Grid>
-        </Border>
-
-        <!-- Footer: Payment Options -->
-        <Border Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" Background="#2D2D2D" Padding="15" BorderThickness="0,1,0,0" BorderBrush="#1a1a1a">
-            <StackPanel Spacing="10">
-                <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto,Auto">
-                    <Button Grid.Column="0" Content="💰 Cash" Padding="20,10" Background="#4CAF50" Foreground="White" FontWeight="Bold" Margin="0,0,10,0"
-                            Command="{Binding CompleteSaleCommand}" CommandParameter="Cash"/>
-                    <Button Grid.Column="1" Content="💳 Card" Padding="20,10" Background="#2196F3" Foreground="White" FontWeight="Bold" Margin="0,0,10,0"
-                            Command="{Binding CompleteSaleCommand}" CommandParameter="Card"/>
-                    <Button Grid.Column="2" Content="📱 Digital" Padding="20,10" Background="#FF9800" Foreground="White" FontWeight="Bold"
-                            Command="{Binding CompleteSaleCommand}" CommandParameter="Digital"/>
-                    <Button Grid.Column="4" Content="🔄 Clear Cart" Padding="20,10" Background="#FF5252" Foreground="White" FontWeight="Bold" Margin="0,0,10,0"
-                            Command="{Binding ClearCartCommand}"/>
-                    <TextBlock Grid.Column="5" Text="{Binding LastTicketNumber, StringFormat='Last ticket: {0}'}"
-                               Foreground="#B0B0B0" VerticalAlignment="Center"/>
-                </Grid>
-
-                <Border BorderThickness="0,1,0,0" BorderBrush="#4A4A4A" Padding="0,10,0,0">
-                    <Grid ColumnDefinitions="Auto,140,140,Auto,Auto,*">
-                        <TextBlock Text="Split payment:" Foreground="White" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                        <TextBox Grid.Column="1" Text="{Binding CashTenderedText}" Watermark="Cash amount" Margin="0,0,8,0"/>
-                        <TextBox Grid.Column="2" Text="{Binding CardTenderedText}" Watermark="Card amount" Margin="0,0,8,0"/>
-                        <Button Grid.Column="3" Content="Complete split payment" Padding="14,8" Background="#7C3AED" Foreground="White"
-                                Command="{Binding CompleteSplitSaleCommand}"/>
-                        <TextBlock Grid.Column="5" Text="{Binding SplitStatusText}" Foreground="#B0B0B0" VerticalAlignment="Center" Margin="12,0,0,0"/>
-                    </Grid>
-                </Border>
-            </StackPanel>
         </Border>
     </Grid>
 </Window>
