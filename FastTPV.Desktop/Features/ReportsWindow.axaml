@@ -5,7 +5,7 @@
         WindowStartupLocation="CenterOwner"
         RequestedThemeVariant="Dark"
         Classes="app">
-  <Grid RowDefinitions="Auto,Auto,Auto,*" Margin="24" RowSpacing="16">
+  <Grid RowDefinitions="Auto,Auto,Auto,*" Margin="24">
     <StackPanel Orientation="Horizontal" Spacing="12">
       <TextBlock Text="Reports" Classes="h1" VerticalAlignment="Center"/>
       <DatePicker x:Name="From"/>
@@ -13,7 +13,7 @@
       <Button Content="Refresh" Click="Refresh" Classes="primary"/>
     </StackPanel>
 
-    <Grid Grid.Row="1" ColumnDefinitions="*,*,*" ColumnSpacing="12">
+    <Grid Grid.Row="1" ColumnDefinitions="*,*,*">
       <Border Classes="card" Padding="18">
         <StackPanel Spacing="4">
           <TextBlock Text="Sales total" Classes="muted"/>
@@ -37,7 +37,7 @@
     <Border Grid.Row="2" Classes="card" Padding="18">
       <StackPanel>
         <TextBlock Text="Register Summary (X/Z Report)" Classes="h2" Margin="0,0,0,10"/>
-        <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="12">
+        <Grid ColumnDefinitions="*,*,*,*">
           <StackPanel>
             <TextBlock Text="Gross subtotal" Classes="muted"/>
             <TextBlock x:Name="SummaryGross" Text="0.00" FontSize="18" FontWeight="Bold"/>
@@ -70,7 +70,7 @@
       </StackPanel>
     </Border>
 
-    <Grid Grid.Row="3" ColumnDefinitions="3*,2*" ColumnSpacing="16">
+    <Grid Grid.Row="3" ColumnDefinitions="3*,2*">
       <Border Classes="panel" CornerRadius="14" Padding="12">
         <DockPanel>
           <TextBlock DockPanel.Dock="Top" Text="Sales history" Classes="h2" Margin="0,0,0,8"/>

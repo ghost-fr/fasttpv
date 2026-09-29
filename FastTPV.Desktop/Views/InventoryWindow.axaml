@@ -8,7 +8,7 @@
         RequestedThemeVariant="Dark"
         Classes="app">
 
-    <Grid RowDefinitions="Auto,*,44" RowSpacing="0">
+    <Grid RowDefinitions="Auto,*,44">
         <Border Classes="panel" Padding="20,14" BorderThickness="0,0,0,1">
             <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
                 <TextBlock Text="Inventory" Classes="h1" FontSize="20" VerticalAlignment="Center"/>
@@ -16,8 +16,8 @@
             </StackPanel>
         </Border>
 
-        <Grid Grid.Row="1" ColumnDefinitions="*,360" Margin="16" ColumnSpacing="16">
-            <DockPanel>
+        <Grid Grid.Row="1" ColumnDefinitions="*,360" Margin="16">
+            <DockPanel Margin="0,0,16,0">
                 <TextBox DockPanel.Dock="Top" Classes="field" Watermark="Search by name, code, or category..."
                          Text="{Binding SearchText}" Margin="0,0,0,12"/>
                 <Border Classes="panel" CornerRadius="14" Padding="0" ClipToBounds="True">
@@ -48,22 +48,22 @@
                             <TextBlock Text="Category" Classes="muted" FontSize="12"/>
                             <AutoCompleteBox Text="{Binding EditCategory}" ItemsSource="{Binding CategoryOptions}"
                                              Classes="field" MinHeight="48"/>
-                            <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
-                                <StackPanel Spacing="4">
+                            <Grid ColumnDefinitions="*,*">
+                                <StackPanel Spacing="4" Margin="0,0,5,0">
                                     <TextBlock Text="Price" Classes="muted" FontSize="12"/>
                                     <NumericUpDown Value="{Binding EditPrice}" FormatString="C" Minimum="0"/>
                                 </StackPanel>
-                                <StackPanel Grid.Column="1" Spacing="4">
+                                <StackPanel Grid.Column="1" Spacing="4" Margin="5,0,0,0">
                                     <TextBlock Text="Cost" Classes="muted" FontSize="12"/>
                                     <NumericUpDown Value="{Binding EditCostPrice}" FormatString="C" Minimum="0"/>
                                 </StackPanel>
                             </Grid>
-                            <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
-                                <StackPanel Spacing="4">
+                            <Grid ColumnDefinitions="*,*">
+                                <StackPanel Spacing="4" Margin="0,0,5,0">
                                     <TextBlock Text="Stock" Classes="muted" FontSize="12"/>
                                     <NumericUpDown Value="{Binding EditStockLevel}" Minimum="0"/>
                                 </StackPanel>
-                                <StackPanel Grid.Column="1" Spacing="4">
+                                <StackPanel Grid.Column="1" Spacing="4" Margin="5,0,0,0">
                                     <TextBlock Text="Min stock" Classes="muted" FontSize="12"/>
                                     <NumericUpDown Value="{Binding EditMinimumStock}" Minimum="0"/>
                                 </StackPanel>
