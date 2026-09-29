@@ -25,16 +25,16 @@
       <TextBox x:Name="AddressLine1" Classes="field" Watermark="Street and number"/>
       <TextBox x:Name="AddressLine2" Classes="field" Watermark="Floor, suite, building (optional)"/>
 
-      <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
-        <StackPanel Spacing="4">
+      <Grid ColumnDefinitions="*,*,*">
+        <StackPanel Spacing="4" Margin="0,0,4,0">
           <TextBlock Text="Postal code" Classes="muted"/>
           <TextBox x:Name="PostalCode" Classes="field"/>
         </StackPanel>
-        <StackPanel Grid.Column="1" Spacing="4">
+        <StackPanel Grid.Column="1" Spacing="4" Margin="4,0,4,0">
           <TextBlock Text="City" Classes="muted"/>
           <TextBox x:Name="City" Classes="field"/>
         </StackPanel>
-        <StackPanel Grid.Column="2" Spacing="4">
+        <StackPanel Grid.Column="2" Spacing="4" Margin="4,0,0,0">
           <TextBlock Text="Province / State" Classes="muted"/>
           <TextBox x:Name="Province" Classes="field"/>
         </StackPanel>
@@ -44,12 +44,12 @@
       <TextBox x:Name="Country" Classes="field"/>
 
       <TextBlock Text="Contact" FontWeight="SemiBold" Margin="0,8,0,0"/>
-      <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
-        <StackPanel Spacing="4">
+      <Grid ColumnDefinitions="*,*">
+        <StackPanel Spacing="4" Margin="0,0,4,0">
           <TextBlock Text="Phone" Classes="muted"/>
           <TextBox x:Name="Phone" Classes="field"/>
         </StackPanel>
-        <StackPanel Grid.Column="1" Spacing="4">
+        <StackPanel Grid.Column="1" Spacing="4" Margin="4,0,0,0">
           <TextBlock Text="Email" Classes="muted"/>
           <TextBox x:Name="Email" Classes="field"/>
         </StackPanel>

@@ -5,7 +5,7 @@
         WindowStartupLocation="CenterOwner"
         RequestedThemeVariant="Dark"
         Classes="app">
-  <Grid RowDefinitions="Auto,*" ColumnDefinitions="2*,3*" Margin="24" RowSpacing="16" ColumnSpacing="18">
+  <Grid RowDefinitions="Auto,*" ColumnDefinitions="2*,3*" Margin="24">
     <StackPanel Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="12">
       <TextBlock Text="Customers" Classes="h1" VerticalAlignment="Center"/>
       <TextBox x:Name="Search" Classes="field" Width="280" Watermark="Search name, code or email" TextChanged="SearchChanged"/>
@@ -30,19 +30,19 @@
           <TextBlock Text="Customer details" Classes="h2"/>
           <TextBox x:Name="Code" Classes="field" Watermark="Code" IsReadOnly="True"/>
           <TextBox x:Name="Name" Classes="field" Watermark="Name *"/>
-          <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
-            <TextBox x:Name="Email" Classes="field" Watermark="Email"/>
-            <TextBox x:Name="Phone" Grid.Column="1" Classes="field" Watermark="Phone"/>
+          <Grid ColumnDefinitions="*,*">
+            <TextBox x:Name="Email" Classes="field" Watermark="Email" Margin="0,0,5,0"/>
+            <TextBox x:Name="Phone" Grid.Column="1" Classes="field" Watermark="Phone" Margin="5,0,0,0"/>
           </Grid>
           <TextBox x:Name="Address" Classes="field" Watermark="Address"/>
-          <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
-            <TextBox x:Name="City" Classes="field" Watermark="City"/>
-            <TextBox x:Name="ZipCode" Grid.Column="1" Classes="field" Watermark="ZIP code"/>
+          <Grid ColumnDefinitions="*,*">
+            <TextBox x:Name="City" Classes="field" Watermark="City" Margin="0,0,5,0"/>
+            <TextBox x:Name="ZipCode" Grid.Column="1" Classes="field" Watermark="ZIP code" Margin="5,0,0,0"/>
           </Grid>
           <TextBox x:Name="TaxId" Classes="field" Watermark="Tax ID"/>
-          <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
-            <TextBox x:Name="CreditLimit" Classes="field" Watermark="Credit limit"/>
-            <TextBox x:Name="CurrentDebt" Grid.Column="1" Classes="field" Watermark="Current debt" IsReadOnly="True"/>
+          <Grid ColumnDefinitions="*,*">
+            <TextBox x:Name="CreditLimit" Classes="field" Watermark="Credit limit" Margin="0,0,5,0"/>
+            <TextBox x:Name="CurrentDebt" Grid.Column="1" Classes="field" Watermark="Current debt" IsReadOnly="True" Margin="5,0,0,0"/>
           </Grid>
           <CheckBox x:Name="IsActive" Content="Active" IsChecked="True"/>
           <TextBlock x:Name="Message" Foreground="{DynamicResource DangerBrush}" TextWrapping="Wrap"/>
