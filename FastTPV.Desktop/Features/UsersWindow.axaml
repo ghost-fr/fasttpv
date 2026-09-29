@@ -5,7 +5,7 @@
         WindowStartupLocation="CenterOwner"
         RequestedThemeVariant="Dark"
         Classes="app">
-  <Grid RowDefinitions="Auto,*" ColumnDefinitions="2*,3*" Margin="24" RowSpacing="16" ColumnSpacing="18">
+  <Grid RowDefinitions="Auto,*" ColumnDefinitions="2*,3*" Margin="24">
     <StackPanel Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="12">
       <TextBlock Text="Users" Classes="h1" VerticalAlignment="Center"/>
       <Button Content="New user" Click="NewUser" Classes="primary"/>

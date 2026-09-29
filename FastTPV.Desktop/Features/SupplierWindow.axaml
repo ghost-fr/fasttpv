@@ -5,7 +5,7 @@
         WindowStartupLocation="CenterOwner"
         RequestedThemeVariant="Dark"
         Classes="app">
-  <Grid RowDefinitions="Auto,*" ColumnDefinitions="2*,3*" Margin="24" RowSpacing="16" ColumnSpacing="18">
+  <Grid RowDefinitions="Auto,*" ColumnDefinitions="2*,3*" Margin="24">
     <StackPanel Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="12">
       <TextBlock Text="Suppliers" Classes="h1" VerticalAlignment="Center"/>
       <TextBox x:Name="Search" Classes="field" Width="280" Watermark="Search name, code or email" TextChanged="SearchChanged"/>
@@ -29,9 +29,9 @@
         <TextBlock Text="Supplier details" Classes="h2"/>
         <TextBox x:Name="Code" Classes="field" Watermark="Code *"/>
         <TextBox x:Name="Name" Classes="field" Watermark="Name *"/>
-        <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
-          <TextBox x:Name="Email" Classes="field" Watermark="Email"/>
-          <TextBox x:Name="Phone" Grid.Column="1" Classes="field" Watermark="Phone"/>
+        <Grid ColumnDefinitions="*,*">
+          <TextBox x:Name="Email" Classes="field" Watermark="Email" Margin="0,0,5,0"/>
+          <TextBox x:Name="Phone" Grid.Column="1" Classes="field" Watermark="Phone" Margin="5,0,0,0"/>
         </Grid>
         <TextBox x:Name="Address" Classes="field" Watermark="Address"/>
         <TextBox x:Name="ContactName" Classes="field" Watermark="Contact person"/>
