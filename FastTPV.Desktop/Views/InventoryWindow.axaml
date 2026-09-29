@@ -1,115 +1,100 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:FastTPV.Desktop.ViewModels"
-        xmlns:dg="using:Avalonia.Controls"
         x:Class="FastTPV.Desktop.Views.InventoryWindow"
         x:DataType="vm:InventoryWindowViewModel"
         Title="Inventory Management"
         WindowState="Maximized"
-        Background="#F5F5F5">
+        RequestedThemeVariant="Dark"
+        Classes="app">
 
-    <Grid RowDefinitions="60,*,30">
-        <!-- Header -->
-        <Border Grid.Row="0" Background="#2D2D2D" Padding="20,0">
-            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                <TextBlock Text="📦 Inventory Management" FontSize="18" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
-                <Button Content="🔄 Refresh" Margin="20,0,0,0" Padding="12,6" Command="{Binding RefreshCommand}"/>
+    <Grid RowDefinitions="Auto,*,44" RowSpacing="0">
+        <Border Classes="panel" Padding="20,14" BorderThickness="0,0,0,1">
+            <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                <TextBlock Text="Inventory" Classes="h1" FontSize="20" VerticalAlignment="Center"/>
+                <Button Content="Refresh" Classes="btn" Command="{Binding RefreshCommand}"/>
             </StackPanel>
         </Border>
 
-        <Grid Grid.Row="1" ColumnDefinitions="*,350" Margin="15">
-            <!-- Left: Filter + Grid -->
-            <DockPanel Grid.Column="0" Margin="0,0,15,0">
-                <TextBox DockPanel.Dock="Top" Watermark="Search by name, code, or category..." Padding="10" Margin="0,0,0,10"
-                         Text="{Binding SearchText}"/>
-
-                <DataGrid ItemsSource="{Binding FilteredArticles}" SelectedItem="{Binding SelectedArticle}"
-                          AutoGenerateColumns="False" IsReadOnly="True" GridLinesVisibility="Horizontal"
-                          Background="White" BorderThickness="1" BorderBrush="#E0E0E0">
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Header="Code" Binding="{Binding Code}" Width="100"/>
-                        <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="*"/>
-                        <DataGridTextColumn Header="Category" Binding="{Binding Category}" Width="140"/>
-                        <DataGridTextColumn Header="Price" Binding="{Binding Price, StringFormat='{}{0:C}'}" Width="100"/>
-                        <DataGridTextColumn Header="Stock" Binding="{Binding StockLevel}" Width="80"/>
-                        <DataGridTextColumn Header="Min" Binding="{Binding MinimumStock}" Width="70"/>
-                    </DataGrid.Columns>
-                </DataGrid>
+        <Grid Grid.Row="1" ColumnDefinitions="*,360" Margin="16" ColumnSpacing="16">
+            <DockPanel>
+                <TextBox DockPanel.Dock="Top" Classes="field" Watermark="Search by name, code, or category..."
+                         Text="{Binding SearchText}" Margin="0,0,0,12"/>
+                <Border Classes="panel" CornerRadius="14" Padding="0" ClipToBounds="True">
+                    <DataGrid ItemsSource="{Binding FilteredArticles}" SelectedItem="{Binding SelectedArticle}"
+                              AutoGenerateColumns="False" IsReadOnly="True" GridLinesVisibility="Horizontal"
+                              Background="Transparent" BorderThickness="0">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Code" Binding="{Binding Code}" Width="100"/>
+                            <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="*"/>
+                            <DataGridTextColumn Header="Category" Binding="{Binding Category}" Width="140"/>
+                            <DataGridTextColumn Header="Price" Binding="{Binding Price, StringFormat='{}{0:C}'}" Width="100"/>
+                            <DataGridTextColumn Header="Stock" Binding="{Binding StockLevel}" Width="80"/>
+                            <DataGridTextColumn Header="Min" Binding="{Binding MinimumStock}" Width="70"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Border>
             </DockPanel>
 
-            <!-- Right: Add / Edit Form + Stock Adjustment -->
-            <StackPanel Grid.Column="1" Spacing="15">
-                <Border Background="White" BorderThickness="1" BorderBrush="#E0E0E0" CornerRadius="8" Padding="20">
-                    <StackPanel Spacing="8">
-                        <TextBlock Text="Add / Edit Product" FontWeight="Bold" FontSize="16" Margin="0,0,0,10"/>
-
-                        <TextBlock Text="Code"/>
-                        <TextBox Text="{Binding EditCode}" Padding="8"/>
-
-                        <TextBlock Text="Name"/>
-                        <TextBox Text="{Binding EditName}" Padding="8"/>
-
-                        <TextBlock Text="Category"/>
-                        <AutoCompleteBox Text="{Binding EditCategory}" ItemsSource="{Binding CategoryOptions}"
-                                          FilterMode="ContainsOrdinal" Padding="8"
-                                          Watermark="Start typing an existing category, or a new one"/>
-
-                        <Grid ColumnDefinitions="*,*" Margin="0,4,0,0">
-                            <StackPanel Grid.Column="0" Margin="0,0,5,0">
-                                <TextBlock Text="Price"/>
-                                <NumericUpDown Value="{Binding EditPrice}" FormatString="C" Minimum="0" Padding="4"/>
+            <ScrollViewer Grid.Column="1">
+                <StackPanel Spacing="14">
+                    <Border Classes="card" Padding="20">
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="Add / Edit Product" Classes="h2"/>
+                            <TextBlock Text="Code" Classes="muted" FontSize="12"/>
+                            <TextBox Text="{Binding EditCode}" Classes="field"/>
+                            <TextBlock Text="Name" Classes="muted" FontSize="12"/>
+                            <TextBox Text="{Binding EditName}" Classes="field"/>
+                            <TextBlock Text="Category" Classes="muted" FontSize="12"/>
+                            <AutoCompleteBox Text="{Binding EditCategory}" ItemsSource="{Binding CategoryOptions}"
+                                             Classes="field" MinHeight="48"/>
+                            <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="Price" Classes="muted" FontSize="12"/>
+                                    <NumericUpDown Value="{Binding EditPrice}" FormatString="C" Minimum="0"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Spacing="4">
+                                    <TextBlock Text="Cost" Classes="muted" FontSize="12"/>
+                                    <NumericUpDown Value="{Binding EditCostPrice}" FormatString="C" Minimum="0"/>
+                                </StackPanel>
+                            </Grid>
+                            <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="Stock" Classes="muted" FontSize="12"/>
+                                    <NumericUpDown Value="{Binding EditStockLevel}" Minimum="0"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Spacing="4">
+                                    <TextBlock Text="Min stock" Classes="muted" FontSize="12"/>
+                                    <NumericUpDown Value="{Binding EditMinimumStock}" Minimum="0"/>
+                                </StackPanel>
+                            </Grid>
+                            <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,10,0,0">
+                                <Button Content="New" Classes="btn" Command="{Binding NewArticleCommand}"/>
+                                <Button Content="Save" Classes="cash" Command="{Binding SaveCommand}"/>
+                                <Button Content="Delete" Classes="danger" Command="{Binding DeleteCommand}"/>
                             </StackPanel>
-                            <StackPanel Grid.Column="1" Margin="5,0,0,0">
-                                <TextBlock Text="Cost Price"/>
-                                <NumericUpDown Value="{Binding EditCostPrice}" FormatString="C" Minimum="0" Padding="4"/>
-                            </StackPanel>
-                        </Grid>
-
-                        <Grid ColumnDefinitions="*,*" Margin="0,4,0,0">
-                            <StackPanel Grid.Column="0" Margin="0,0,5,0">
-                                <TextBlock Text="Stock Level"/>
-                                <NumericUpDown Value="{Binding EditStockLevel}" Minimum="0" Padding="4"/>
-                            </StackPanel>
-                            <StackPanel Grid.Column="1" Margin="5,0,0,0">
-                                <TextBlock Text="Minimum Stock"/>
-                                <NumericUpDown Value="{Binding EditMinimumStock}" Minimum="0" Padding="4"/>
-                            </StackPanel>
-                        </Grid>
-
-                        <StackPanel Orientation="Horizontal" Margin="0,15,0,0" Spacing="10">
-                            <Button Content="New" Padding="16,8" Command="{Binding NewArticleCommand}"/>
-                            <Button Content="Save" Padding="16,8" Background="#4CAF50" Foreground="White" Command="{Binding SaveCommand}"/>
-                            <Button Content="Delete" Padding="16,8" Background="#FF5252" Foreground="White" Command="{Binding DeleteCommand}"/>
                         </StackPanel>
-                    </StackPanel>
-                </Border>
+                    </Border>
 
-                <!-- Manual stock adjustment: goes through StockMovementService so
-                     every +/- to a live count is logged with a reason, separate
-                     from overwriting the raw Stock Level number above via Save. -->
-                <Border Background="White" BorderThickness="1" BorderBrush="#E0E0E0" CornerRadius="8" Padding="20">
-                    <StackPanel Spacing="8">
-                        <TextBlock Text="Adjust Stock" FontWeight="Bold" FontSize="16" Margin="0,0,0,4"/>
-                        <TextBlock Text="{Binding SelectedArticle.Name, StringFormat='For: {0}', TargetNullValue='Select a product in the grid first.'}"
-                                   FontSize="12" Foreground="#666"/>
-
-                        <TextBlock Text="Quantity (+ to add, − to remove)" Margin="0,6,0,0"/>
-                        <NumericUpDown Value="{Binding AdjustQuantityDelta}" Padding="4"/>
-
-                        <TextBlock Text="Reason" Margin="0,6,0,0"/>
-                        <TextBox Text="{Binding AdjustReason}" Watermark="e.g. Damaged, Recount, Supplier delivery" Padding="8"/>
-
-                        <Button Content="Apply Adjustment" Padding="16,8" Margin="0,10,0,0"
-                                Background="#2196F3" Foreground="White" HorizontalAlignment="Left"
-                                Command="{Binding AdjustStockCommand}"/>
-                    </StackPanel>
-                </Border>
-            </StackPanel>
+                    <Border Classes="card" Padding="20">
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="Adjust Stock" Classes="h2"/>
+                            <TextBlock Text="{Binding SelectedArticle.Name, StringFormat='For: {0}', TargetNullValue='Select a product in the grid first.'}"
+                                       Classes="muted" FontSize="12"/>
+                            <TextBlock Text="Quantity (+ to add, − to remove)" Classes="muted" FontSize="12"/>
+                            <NumericUpDown Value="{Binding AdjustQuantityDelta}"/>
+                            <TextBlock Text="Reason" Classes="muted" FontSize="12"/>
+                            <TextBox Text="{Binding AdjustReason}" Classes="field" Watermark="e.g. Damaged, Recount, Supplier delivery"/>
+                            <Button Content="Apply Adjustment" Classes="primary" HorizontalAlignment="Left"
+                                    Command="{Binding AdjustStockCommand}" Margin="0,8,0,0"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
         </Grid>
 
-        <!-- Status Bar -->
-        <Border Grid.Row="2" Background="#F0F0F0" BorderThickness="0,1,0,0" BorderBrush="#E0E0E0" Padding="15,0">
-            <TextBlock Text="{Binding StatusMessage}" Foreground="#666" FontSize="12" VerticalAlignment="Center"/>
+        <Border Grid.Row="2" Classes="panel" BorderThickness="0,1,0,0" Padding="20,0">
+            <TextBlock Text="{Binding StatusMessage}" Classes="muted" FontSize="12" VerticalAlignment="Center"/>
         </Border>
     </Grid>
 </Window>
