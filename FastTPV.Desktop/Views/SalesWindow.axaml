@@ -68,6 +68,7 @@
                                                   Stroke="{DynamicResource CyanBrush}"/>
                                         </Border>
                                         <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                                        <TextBlock Text="Open price" Classes="muted" FontSize="10" IsVisible="{Binding IsOpenPrice}"/>
                                         <Grid ColumnDefinitions="*,Auto">
                                             <TextBlock Grid.Column="0" Classes="price" Text="{Binding Price, StringFormat='{}{0:C}'}"/>
                                             <Border Grid.Column="1" VerticalAlignment="Center"
@@ -114,7 +115,6 @@
                                                 <Path Classes="icon" Data="{StaticResource IconX}" Width="14" Height="14"/>
                                             </Button>
                                         </Grid>
-
                                         <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto">
                                             <Button Grid.Column="0" Classes="btn" Width="32" Height="32" Padding="0"
                                                     Command="{Binding $parent[ItemsControl].((vm:SalesWindowViewModel)DataContext).DecrementLineCommand}"
@@ -129,16 +129,13 @@
                                                 <Path Classes="icon" Data="{StaticResource IconPlus}" Width="14" Height="14"/>
                                             </Button>
                                             <TextBlock Grid.Column="4" Text="{Binding LineTotal, StringFormat='{}{0:C}'}"
-                                                       VerticalAlignment="Center" FontWeight="Bold"
-                                                       Foreground="{DynamicResource TextBrush}"/>
+                                                       VerticalAlignment="Center" FontWeight="Bold"/>
                                         </Grid>
-
                                         <Grid ColumnDefinitions="*,Auto">
                                             <TextBox Grid.Column="0" Classes="field" Padding="10,6" MinHeight="0" Margin="0,0,8,0"
                                                      Watermark="Line discount %" FontSize="12"
                                                      Text="{Binding DiscountPercentText}"/>
-                                            <Button Grid.Column="1" Classes="btn" Padding="12,6" FontSize="12"
-                                                    Content="Apply"
+                                            <Button Grid.Column="1" Classes="btn" Padding="12,6" FontSize="12" Content="Apply"
                                                     Command="{Binding $parent[ItemsControl].((vm:SalesWindowViewModel)DataContext).SetLineDiscountCommand}"
                                                     CommandParameter="{Binding}"/>
                                         </Grid>
@@ -181,41 +178,59 @@
                         <TextBlock Grid.Column="1" Text="{Binding Total, StringFormat='{}{0:C}'}" Classes="total"/>
                     </Grid>
 
+                    <!-- Working POS keypad -->
+                    <Border Classes="card" Padding="12">
+                        <StackPanel Spacing="8">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <TextBlock Text="{Binding KeypadPrompt}" Classes="muted" FontSize="12" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="1" Text="{Binding KeypadBuffer}" FontSize="22" FontWeight="Bold"
+                                           Foreground="{DynamicResource CyanBrush}"/>
+                            </Grid>
+                            <UniformGrid Columns="5">
+                                <Button Classes="btn" Content="Qty" Margin="2" Command="{Binding SetKeypadTargetCommand}" CommandParameter="Quantity"/>
+                                <Button Classes="btn" Content="€" Margin="2" Command="{Binding SetKeypadTargetCommand}" CommandParameter="OpenPrice"/>
+                                <Button Classes="btn" Content="%" Margin="2" Command="{Binding SetKeypadTargetCommand}" CommandParameter="TicketDiscount"/>
+                                <Button Classes="btn" Content="Cash" Margin="2" Command="{Binding SetKeypadTargetCommand}" CommandParameter="Cash"/>
+                                <Button Classes="btn" Content="Card" Margin="2" Command="{Binding SetKeypadTargetCommand}" CommandParameter="Card"/>
+                            </UniformGrid>
+                            <UniformGrid Columns="3">
+                                <Button Classes="btn" Content="7" Height="48" Margin="2" FontSize="18" Command="{Binding KeypadDigitCommand}" CommandParameter="7"/>
+                                <Button Classes="btn" Content="8" Height="48" Margin="2" FontSize="18" Command="{Binding KeypadDigitCommand}" CommandParameter="8"/>
+                                <Button Classes="btn" Content="9" Height="48" Margin="2" FontSize="18" Command="{Binding KeypadDigitCommand}" CommandParameter="9"/>
+                                <Button Classes="btn" Content="4" Height="48" Margin="2" FontSize="18" Command="{Binding KeypadDigitCommand}" CommandParameter="4"/>
+                                <Button Classes="btn" Content="5" Height="48" Margin="2" FontSize="18" Command="{Binding KeypadDigitCommand}" CommandParameter="5"/>
+                                <Button Classes="btn" Content="6" Height="48" Margin="2" FontSize="18" Command="{Binding KeypadDigitCommand}" CommandParameter="6"/>
+                                <Button Classes="btn" Content="1" Height="48" Margin="2" FontSize="18" Command="{Binding KeypadDigitCommand}" CommandParameter="1"/>
+                                <Button Classes="btn" Content="2" Height="48" Margin="2" FontSize="18" Command="{Binding KeypadDigitCommand}" CommandParameter="2"/>
+                                <Button Classes="btn" Content="3" Height="48" Margin="2" FontSize="18" Command="{Binding KeypadDigitCommand}" CommandParameter="3"/>
+                                <Button Classes="btn" Content="C" Height="48" Margin="2" FontSize="16" Command="{Binding KeypadClearCommand}"/>
+                                <Button Classes="btn" Content="0" Height="48" Margin="2" FontSize="18" Command="{Binding KeypadDigitCommand}" CommandParameter="0"/>
+                                <Button Classes="btn" Content="." Height="48" Margin="2" FontSize="18" Command="{Binding KeypadDigitCommand}" CommandParameter="."/>
+                            </UniformGrid>
+                            <Grid ColumnDefinitions="*,*">
+                                <Button Classes="btn" Content="⌫" Height="44" Margin="2,2,4,2" Command="{Binding KeypadBackspaceCommand}"/>
+                                <Button Grid.Column="1" Classes="primary" Content="Enter" Height="44" Margin="4,2,2,2" Command="{Binding KeypadEnterCommand}"/>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
                     <Grid ColumnDefinitions="*,*,*">
                         <Button Grid.Column="0" Classes="cash" Height="72" Margin="0,0,5,0"
                                 Command="{Binding CompleteSaleCommand}" CommandParameter="Cash">
-                            <StackPanel HorizontalAlignment="Center" Spacing="4">
-                                <Path Data="{StaticResource IconCash}" Stretch="Uniform" Width="22" Height="22"
-                                      Stroke="#052E16" StrokeThickness="2" StrokeLineCap="Round" StrokeJoin="Round"
-                                      HorizontalAlignment="Center"/>
-                                <TextBlock Text="Cash" HorizontalAlignment="Center" FontWeight="Bold"/>
-                            </StackPanel>
+                            <TextBlock Text="Cash" HorizontalAlignment="Center" FontWeight="Bold" VerticalAlignment="Center"/>
                         </Button>
                         <Button Grid.Column="1" Classes="card" Height="72" Margin="5,0,5,0"
                                 Command="{Binding CompleteSaleCommand}" CommandParameter="Card">
-                            <StackPanel HorizontalAlignment="Center" Spacing="4">
-                                <Path Data="{StaticResource IconCard}" Stretch="Uniform" Width="22" Height="22"
-                                      Stroke="White" StrokeThickness="2" StrokeLineCap="Round" StrokeJoin="Round"
-                                      HorizontalAlignment="Center"/>
-                                <TextBlock Text="Card" HorizontalAlignment="Center" FontWeight="Bold"/>
-                            </StackPanel>
+                            <TextBlock Text="Card" HorizontalAlignment="Center" FontWeight="Bold" VerticalAlignment="Center"/>
                         </Button>
                         <Button Grid.Column="2" Classes="digital" Height="72" Margin="5,0,0,0"
                                 Command="{Binding CompleteSaleCommand}" CommandParameter="Digital">
-                            <StackPanel HorizontalAlignment="Center" Spacing="4">
-                                <Path Data="{StaticResource IconPhone}" Stretch="Uniform" Width="22" Height="22"
-                                      Stroke="White" StrokeThickness="2" StrokeLineCap="Round" StrokeJoin="Round"
-                                      HorizontalAlignment="Center"/>
-                                <TextBlock Text="Digital" HorizontalAlignment="Center" FontWeight="Bold"/>
-                            </StackPanel>
+                            <TextBlock Text="Digital" HorizontalAlignment="Center" FontWeight="Bold" VerticalAlignment="Center"/>
                         </Button>
                     </Grid>
 
                     <ToggleButton x:Name="SplitToggle" Classes="split" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center">
-                        <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
-                            <Path Classes="icon" Data="{StaticResource IconSplit}" Width="16" Height="16"/>
-                            <TextBlock Text="Split payment"/>
-                        </StackPanel>
+                        <TextBlock Text="Split payment" HorizontalAlignment="Center"/>
                     </ToggleButton>
 
                     <StackPanel Spacing="8" IsVisible="{Binding #SplitToggle.IsChecked}">
