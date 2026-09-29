@@ -194,9 +194,6 @@
         <Setter Property="HorizontalScrollBarVisibility" Value="Auto"/>
         <Setter Property="VerticalScrollBarVisibility" Value="Disabled"/>
     </Style>
-    <Style Selector="ListBox.chips WrapPanel, ListBox.chips StackPanel">
-        <Setter Property="Orientation" Value="Horizontal"/>
-    </Style>
     <Style Selector="ListBox.chips > ListBoxItem">
         <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
         <Setter Property="BorderBrush" Value="{DynamicResource LineBrush}"/>
