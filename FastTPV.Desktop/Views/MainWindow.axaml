@@ -5,171 +5,253 @@
         x:DataType="vm:MainWindowViewModel"
         Title="FastTPV - Modern POS Management System"
         WindowState="Maximized"
-        Background="#F5F5F5">
+        RequestedThemeVariant="Dark"
+        Classes="app">
 
     <DockPanel>
-        <!-- Top Menu Bar -->
-        <Border DockPanel.Dock="Top" Background="#2D2D2D" Padding="0" Height="50">
-            <Grid ColumnDefinitions="*,Auto" Margin="20,0">
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock Text="FastTPV" FontSize="20" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
-                    <TextBlock Text="v1.0" FontSize="12" Foreground="#B0B0B0" VerticalAlignment="Center" Margin="10,0,0,0"/>
+
+        <!-- ===== Top bar ===== -->
+        <Border DockPanel.Dock="Top" Classes="panel" Height="60" BorderThickness="0,0,0,1">
+            <Grid ColumnDefinitions="*,Auto" Margin="24,0">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="10">
+                    <Border Width="36" Height="36" CornerRadius="10" Background="{DynamicResource PrimaryGradient}">
+                        <Path Data="{StaticResource IconCart}" Stretch="Uniform" Width="18" Height="18"
+                              Stroke="White" StrokeThickness="2" StrokeLineCap="Round" StrokeJoin="Round"/>
+                    </Border>
+                    <StackPanel>
+                        <TextBlock Text="FastTPV" FontSize="18" FontWeight="Bold"/>
+                        <TextBlock Text="v1.0" Classes="dim" FontSize="11"/>
+                    </StackPanel>
                 </StackPanel>
-                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Spacing="12">
-                    <TextBlock Text="{Binding CurrentUserDisplayName, StringFormat='Signed in as {0}'}" Foreground="#B0B0B0" VerticalAlignment="Center"/>
-                    <Button Content="Change password" Command="{Binding ChangePasswordCommand}" Padding="10,4" Background="Transparent" Foreground="#B0B0B0" BorderThickness="0"/>
-                    <Button Content="Log out" Click="Logout" Padding="10,4" Background="Transparent" Foreground="#FF6B6B" BorderThickness="0"/>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Spacing="16">
+                    <TextBlock Text="{Binding CurrentUserDisplayName, StringFormat='Signed in as {0}'}"
+                               Classes="muted" VerticalAlignment="Center"/>
+                    <Button Content="Change password" Command="{Binding ChangePasswordCommand}" Classes="ghost"/>
+                    <Button Content="Log out" Click="Logout" Classes="ghost" Foreground="{DynamicResource DangerBrush}"/>
                 </StackPanel>
             </Grid>
         </Border>
 
-        <!-- Left Sidebar Navigation -->
-        <Border DockPanel.Dock="Left" Background="#3C3C3C" Width="250" BorderThickness="1,0,0,0" BorderBrush="#1a1a1a">
+        <!-- ===== Sidebar ===== -->
+        <Border DockPanel.Dock="Left" Width="248" Classes="panel" BorderThickness="0,0,1,0">
             <ScrollViewer>
-            <StackPanel>
-                <Button Content="Sales / POS" Padding="20,15" Foreground="White" Background="Transparent"
-                        BorderThickness="0" Cursor="Hand" HorizontalContentAlignment="Left"
-                        HorizontalAlignment="Stretch" Command="{Binding OpenSalesCommand}"/>
-                <Button Content="Cash Drawer" Padding="20,15" Foreground="White" Background="Transparent"
-                        BorderThickness="0" Cursor="Hand" HorizontalContentAlignment="Left"
-                        HorizontalAlignment="Stretch" Command="{Binding OpenCashDrawerCommand}"/>
-                <Button Content="Inventory" Padding="20,15" Foreground="White" Background="Transparent"
-                        BorderThickness="0" Cursor="Hand" HorizontalContentAlignment="Left"
-                        HorizontalAlignment="Stretch" Command="{Binding OpenInventoryCommand}"/>
-                <Button Content="Suppliers" Padding="20,15" Foreground="White" Background="Transparent"
-                        BorderThickness="0" Cursor="Hand" HorizontalContentAlignment="Left"
-                        HorizontalAlignment="Stretch" Command="{Binding OpenSuppliersCommand}"/>
-                <Button Content="Customers" Padding="20,15" Foreground="White" Background="Transparent"
-                        BorderThickness="0" Cursor="Hand" HorizontalContentAlignment="Left"
-                        HorizontalAlignment="Stretch" Command="{Binding OpenCustomersCommand}"/>
-                <Button Content="Reports" Padding="20,15" Foreground="White" Background="Transparent"
-                        BorderThickness="0" Cursor="Hand" HorizontalContentAlignment="Left"
-                        HorizontalAlignment="Stretch" Command="{Binding OpenReportsCommand}"/>
-                <Separator Background="#555" Margin="0,20,0,0" IsVisible="{Binding IsAdmin}"/>
-                <TextBlock Text="ADMIN" FontSize="11" Foreground="#888" Margin="20,10,0,4" IsVisible="{Binding IsAdmin}"/>
-                <Button Content="Users" Padding="20,15" Foreground="White" Background="Transparent"
-                        BorderThickness="0" Cursor="Hand" HorizontalContentAlignment="Left"
-                        HorizontalAlignment="Stretch" Command="{Binding OpenUsersCommand}" IsVisible="{Binding IsAdmin}"/>
-                <Button Content="Company Settings" Padding="20,15" Foreground="White" Background="Transparent"
-                        BorderThickness="0" Cursor="Hand" HorizontalContentAlignment="Left"
-                        HorizontalAlignment="Stretch" Command="{Binding OpenCompanySettingsCommand}" IsVisible="{Binding IsAdmin}"/>
-                <Button Content="Printer Settings" Padding="20,15" Foreground="White" Background="Transparent"
-                        BorderThickness="0" Cursor="Hand" HorizontalContentAlignment="Left"
-                        HorizontalAlignment="Stretch" Command="{Binding OpenPrinterSettingsCommand}" IsVisible="{Binding IsAdmin}"/>
-                <Separator Background="#555" Margin="0,20,0,0"/>
-                <Button Content="Exit" Padding="20,15" Foreground="#FF6B6B" Background="Transparent"
-                        BorderThickness="0" Cursor="Hand" HorizontalContentAlignment="Left"
-                        HorizontalAlignment="Stretch" Command="{Binding ExitCommand}"/>
-            </StackPanel>
+                <StackPanel Margin="16" Spacing="4">
+                    <Button Classes="nav" Command="{Binding OpenSalesCommand}">
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <Path Classes="icon" Data="{StaticResource IconCart}"/>
+                            <TextBlock Text="Sales / POS" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Classes="nav" Command="{Binding OpenCashDrawerCommand}">
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <Path Classes="icon" Data="{StaticResource IconWallet}"/>
+                            <TextBlock Text="Cash Drawer" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Classes="nav" Command="{Binding OpenInventoryCommand}">
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <Path Classes="icon" Data="{StaticResource IconPackage}"/>
+                            <TextBlock Text="Inventory" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Classes="nav" Command="{Binding OpenSuppliersCommand}">
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <Path Classes="icon" Data="{StaticResource IconTruck}"/>
+                            <TextBlock Text="Suppliers" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Classes="nav" Command="{Binding OpenCustomersCommand}">
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <Path Classes="icon" Data="{StaticResource IconUsers}"/>
+                            <TextBlock Text="Customers" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Classes="nav" Command="{Binding OpenReportsCommand}">
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <Path Classes="icon" Data="{StaticResource IconChart}"/>
+                            <TextBlock Text="Reports" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+
+                    <Border Height="1" Background="{DynamicResource LineBrush}" Margin="4,16" IsVisible="{Binding IsAdmin}"/>
+                    <TextBlock Text="ADMIN" Classes="caption" Margin="14,0,0,4" IsVisible="{Binding IsAdmin}"/>
+
+                    <Button Classes="nav" Command="{Binding OpenUsersCommand}" IsVisible="{Binding IsAdmin}">
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <Path Classes="icon" Data="{StaticResource IconUser}"/>
+                            <TextBlock Text="Users" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Classes="nav" Command="{Binding OpenCompanySettingsCommand}" IsVisible="{Binding IsAdmin}">
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <Path Classes="icon" Data="{StaticResource IconBuilding}"/>
+                            <TextBlock Text="Company Settings" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Classes="nav" Command="{Binding OpenPrinterSettingsCommand}" IsVisible="{Binding IsAdmin}">
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <Path Classes="icon" Data="{StaticResource IconPrinter}"/>
+                            <TextBlock Text="Printer Settings" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+
+                    <Border Height="1" Background="{DynamicResource LineBrush}" Margin="4,16"/>
+                    <Button Classes="nav" Command="{Binding ExitCommand}" Foreground="{DynamicResource DangerBrush}">
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <Path Classes="icon" Data="{StaticResource IconLogout}" Stroke="{DynamicResource DangerBrush}"/>
+                            <TextBlock Text="Exit" VerticalAlignment="Center" Foreground="{DynamicResource DangerBrush}"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
             </ScrollViewer>
         </Border>
 
-        <!-- Main Content Area -->
-        <Grid RowDefinitions="*,50" Margin="20">
-            <ScrollViewer Grid.Row="0">
-                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Margin="0,20">
-                    <TextBlock Text="Welcome to FastTPV" FontSize="32" FontWeight="Bold" Foreground="#2D2D2D" Margin="0,0,0,20" TextAlignment="Center"/>
-                    <TextBlock Text="Modern POS Management System" FontSize="18" Foreground="#666" TextAlignment="Center" Margin="0,0,0,40"/>
+        <!-- ===== Main content ===== -->
+        <Grid RowDefinitions="*,44">
+            <ScrollViewer Grid.Row="0" Padding="32">
+                <StackPanel Spacing="28" MaxWidth="1100" HorizontalAlignment="Stretch">
 
-                    <WrapPanel HorizontalAlignment="Center" MaxWidth="1000">
-                        <Button Command="{Binding OpenSalesCommand}" Cursor="Hand" Margin="10"
-                                Background="Transparent" BorderThickness="0" Padding="0">
-                            <Border Classes="card" Background="White" BorderThickness="1" BorderBrush="#E0E0E0" CornerRadius="8" Padding="30" Width="200">
-                                <StackPanel>
-                                    <TextBlock Text="New Sale" FontSize="16" FontWeight="Bold" Foreground="#2D2D2D" TextAlignment="Center"/>
-                                    <TextBlock Text="Create a new transaction" FontSize="12" Foreground="#999" TextAlignment="Center" Margin="0,5,0,0"/>
-                                </StackPanel>
-                            </Border>
-                        </Button>
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="Welcome to FastTPV" Classes="h1"/>
+                        <TextBlock Text="Modern POS Management System" Classes="muted" FontSize="15"/>
+                    </StackPanel>
 
-                        <Button Command="{Binding OpenCashDrawerCommand}" Cursor="Hand" Margin="10"
-                                Background="Transparent" BorderThickness="0" Padding="0">
-                            <Border Classes="card" Background="White" BorderThickness="1" BorderBrush="#E0E0E0" CornerRadius="8" Padding="30" Width="200">
-                                <StackPanel>
-                                    <TextBlock Text="Cash Drawer" FontSize="16" FontWeight="Bold" Foreground="#2D2D2D" TextAlignment="Center"/>
-                                    <TextBlock Text="Open/close till, reconcile cash" FontSize="12" Foreground="#999" TextAlignment="Center" Margin="0,5,0,0"/>
+                    <!-- Primary action: start a sale -->
+                    <Border CornerRadius="20" Padding="28" Background="{DynamicResource PrimaryGradient}">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel Grid.Column="0" Spacing="6" VerticalAlignment="Center">
+                                <TextBlock Text="Ready for the next customer?" Foreground="#C7D2FE" FontWeight="SemiBold" FontSize="12"/>
+                                <TextBlock Text="Start a new sale" Foreground="White" FontSize="26" FontWeight="Bold"/>
+                                <TextBlock Text="Scan a barcode or pick products. Cash, card, digital or split payment."
+                                           Foreground="#DBE4FF" FontSize="13"/>
+                            </StackPanel>
+                            <Button Grid.Column="1" VerticalAlignment="Center" Command="{Binding OpenSalesCommand}"
+                                    Background="White" Foreground="#1E1B4B" CornerRadius="14" Padding="24,14" Cursor="Hand">
+                                <StackPanel Orientation="Horizontal" Spacing="10">
+                                    <TextBlock Text="New Sale" FontWeight="Bold"/>
+                                    <Path Data="{StaticResource IconArrow}" Stretch="Uniform" Width="18" Height="18"
+                                          Stroke="#1E1B4B" StrokeThickness="2" StrokeLineCap="Round" StrokeJoin="Round"/>
                                 </StackPanel>
-                            </Border>
-                        </Button>
+                            </Button>
+                        </Grid>
+                    </Border>
 
-                        <Button Command="{Binding OpenInventoryCommand}" Cursor="Hand" Margin="10"
-                                Background="Transparent" BorderThickness="0" Padding="0">
-                            <Border Classes="card" Background="White" BorderThickness="1" BorderBrush="#E0E0E0" CornerRadius="8" Padding="30" Width="200">
-                                <StackPanel>
-                                    <TextBlock Text="Inventory" FontSize="16" FontWeight="Bold" Foreground="#2D2D2D" TextAlignment="Center"/>
-                                    <TextBlock Text="Manage stock levels" FontSize="12" Foreground="#999" TextAlignment="Center" Margin="0,5,0,0"/>
+                    <!-- Other destinations -->
+                    <StackPanel Spacing="12">
+                        <TextBlock Text="Manage" Classes="h2"/>
+                        <WrapPanel ItemWidth="252" ItemHeight="112">
+                            <Button Command="{Binding OpenCashDrawerCommand}" Classes="tile" Margin="0,0,12,12" Width="240" Height="100">
+                                <StackPanel Orientation="Horizontal" Spacing="14">
+                                    <Border Width="44" Height="44" CornerRadius="12" Background="{DynamicResource Surface2Brush}">
+                                        <Path Classes="icon" Data="{StaticResource IconWallet}" Stroke="{DynamicResource CyanBrush}"/>
+                                    </Border>
+                                    <StackPanel VerticalAlignment="Center" MaxWidth="150">
+                                        <TextBlock Text="Cash Drawer" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                                        <TextBlock Text="Open / close till, reconcile" Classes="muted" FontSize="12" TextWrapping="Wrap"/>
+                                    </StackPanel>
                                 </StackPanel>
-                            </Border>
-                        </Button>
+                            </Button>
 
-                        <Button Command="{Binding OpenSuppliersCommand}" Cursor="Hand" Margin="10"
-                                Background="Transparent" BorderThickness="0" Padding="0">
-                            <Border Classes="card" Background="White" BorderThickness="1" BorderBrush="#E0E0E0" CornerRadius="8" Padding="30" Width="200">
-                                <StackPanel>
-                                    <TextBlock Text="Suppliers" FontSize="16" FontWeight="Bold" Foreground="#2D2D2D" TextAlignment="Center"/>
-                                    <TextBlock Text="Manage supplier records" FontSize="12" Foreground="#999" TextAlignment="Center" Margin="0,5,0,0"/>
+                            <Button Command="{Binding OpenInventoryCommand}" Classes="tile" Margin="0,0,12,12" Width="240" Height="100">
+                                <StackPanel Orientation="Horizontal" Spacing="14">
+                                    <Border Width="44" Height="44" CornerRadius="12" Background="{DynamicResource Surface2Brush}">
+                                        <Path Classes="icon" Data="{StaticResource IconPackage}" Stroke="{DynamicResource CyanBrush}"/>
+                                    </Border>
+                                    <StackPanel VerticalAlignment="Center" MaxWidth="150">
+                                        <TextBlock Text="Inventory" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                                        <TextBlock Text="Manage stock levels" Classes="muted" FontSize="12" TextWrapping="Wrap"/>
+                                    </StackPanel>
                                 </StackPanel>
-                            </Border>
-                        </Button>
+                            </Button>
 
-                        <Button Command="{Binding OpenCustomersCommand}" Cursor="Hand" Margin="10"
-                                Background="Transparent" BorderThickness="0" Padding="0">
-                            <Border Classes="card" Background="White" BorderThickness="1" BorderBrush="#E0E0E0" CornerRadius="8" Padding="30" Width="200">
-                                <StackPanel>
-                                    <TextBlock Text="Customers" FontSize="16" FontWeight="Bold" Foreground="#2D2D2D" TextAlignment="Center"/>
-                                    <TextBlock Text="Manage customer accounts" FontSize="12" Foreground="#999" TextAlignment="Center" Margin="0,5,0,0"/>
+                            <Button Command="{Binding OpenSuppliersCommand}" Classes="tile" Margin="0,0,12,12" Width="240" Height="100">
+                                <StackPanel Orientation="Horizontal" Spacing="14">
+                                    <Border Width="44" Height="44" CornerRadius="12" Background="{DynamicResource Surface2Brush}">
+                                        <Path Classes="icon" Data="{StaticResource IconTruck}" Stroke="{DynamicResource CyanBrush}"/>
+                                    </Border>
+                                    <StackPanel VerticalAlignment="Center" MaxWidth="150">
+                                        <TextBlock Text="Suppliers" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                                        <TextBlock Text="Manage supplier records" Classes="muted" FontSize="12" TextWrapping="Wrap"/>
+                                    </StackPanel>
                                 </StackPanel>
-                            </Border>
-                        </Button>
+                            </Button>
 
-                        <Button Command="{Binding OpenReportsCommand}" Cursor="Hand" Margin="10"
-                                Background="Transparent" BorderThickness="0" Padding="0">
-                            <Border Classes="card" Background="White" BorderThickness="1" BorderBrush="#E0E0E0" CornerRadius="8" Padding="30" Width="200">
-                                <StackPanel>
-                                    <TextBlock Text="Reports" FontSize="16" FontWeight="Bold" Foreground="#2D2D2D" TextAlignment="Center"/>
-                                    <TextBlock Text="Sales and low-stock overview" FontSize="12" Foreground="#999" TextAlignment="Center" Margin="0,5,0,0"/>
+                            <Button Command="{Binding OpenCustomersCommand}" Classes="tile" Margin="0,0,12,12" Width="240" Height="100">
+                                <StackPanel Orientation="Horizontal" Spacing="14">
+                                    <Border Width="44" Height="44" CornerRadius="12" Background="{DynamicResource Surface2Brush}">
+                                        <Path Classes="icon" Data="{StaticResource IconUsers}" Stroke="{DynamicResource CyanBrush}"/>
+                                    </Border>
+                                    <StackPanel VerticalAlignment="Center" MaxWidth="150">
+                                        <TextBlock Text="Customers" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                                        <TextBlock Text="Manage customer accounts" Classes="muted" FontSize="12" TextWrapping="Wrap"/>
+                                    </StackPanel>
                                 </StackPanel>
-                            </Border>
-                        </Button>
+                            </Button>
 
-                        <Button Command="{Binding OpenUsersCommand}" Cursor="Hand" Margin="10"
-                                Background="Transparent" BorderThickness="0" Padding="0" IsVisible="{Binding IsAdmin}">
-                            <Border Classes="card" Background="White" BorderThickness="1" BorderBrush="#E0E0E0" CornerRadius="8" Padding="30" Width="200">
-                                <StackPanel>
-                                    <TextBlock Text="Users" FontSize="16" FontWeight="Bold" Foreground="#2D2D2D" TextAlignment="Center"/>
-                                    <TextBlock Text="Manage accounts and roles" FontSize="12" Foreground="#999" TextAlignment="Center" Margin="0,5,0,0"/>
+                            <Button Command="{Binding OpenReportsCommand}" Classes="tile" Margin="0,0,12,12" Width="240" Height="100">
+                                <StackPanel Orientation="Horizontal" Spacing="14">
+                                    <Border Width="44" Height="44" CornerRadius="12" Background="{DynamicResource Surface2Brush}">
+                                        <Path Classes="icon" Data="{StaticResource IconChart}" Stroke="{DynamicResource CyanBrush}"/>
+                                    </Border>
+                                    <StackPanel VerticalAlignment="Center" MaxWidth="150">
+                                        <TextBlock Text="Reports" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                                        <TextBlock Text="Sales and low-stock overview" Classes="muted" FontSize="12" TextWrapping="Wrap"/>
+                                    </StackPanel>
                                 </StackPanel>
-                            </Border>
-                        </Button>
+                            </Button>
+                        </WrapPanel>
+                    </StackPanel>
 
-                        <Button Command="{Binding OpenCompanySettingsCommand}" Cursor="Hand" Margin="10"
-                                Background="Transparent" BorderThickness="0" Padding="0" IsVisible="{Binding IsAdmin}">
-                            <Border Classes="card" Background="White" BorderThickness="1" BorderBrush="#E0E0E0" CornerRadius="8" Padding="30" Width="200">
-                                <StackPanel>
-                                    <TextBlock Text="Company Settings" FontSize="16" FontWeight="Bold" Foreground="#2D2D2D" TextAlignment="Center"/>
-                                    <TextBlock Text="Business identity on receipts" FontSize="12" Foreground="#999" TextAlignment="Center" Margin="0,5,0,0"/>
+                    <!-- Admin -->
+                    <StackPanel Spacing="12" IsVisible="{Binding IsAdmin}">
+                        <TextBlock Text="Admin" Classes="h2"/>
+                        <WrapPanel ItemWidth="252" ItemHeight="112">
+                            <Button Command="{Binding OpenUsersCommand}" Classes="tile" Margin="0,0,12,12" Width="240" Height="100">
+                                <StackPanel Orientation="Horizontal" Spacing="14">
+                                    <Border Width="44" Height="44" CornerRadius="12" Background="{DynamicResource Surface2Brush}">
+                                        <Path Classes="icon" Data="{StaticResource IconUser}" Stroke="{DynamicResource CyanBrush}"/>
+                                    </Border>
+                                    <StackPanel VerticalAlignment="Center" MaxWidth="150">
+                                        <TextBlock Text="Users" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                                        <TextBlock Text="Manage accounts and roles" Classes="muted" FontSize="12" TextWrapping="Wrap"/>
+                                    </StackPanel>
                                 </StackPanel>
-                            </Border>
-                        </Button>
+                            </Button>
 
-                        <Button Command="{Binding OpenPrinterSettingsCommand}" Cursor="Hand" Margin="10"
-                                Background="Transparent" BorderThickness="0" Padding="0" IsVisible="{Binding IsAdmin}">
-                            <Border Classes="card" Background="White" BorderThickness="1" BorderBrush="#E0E0E0" CornerRadius="8" Padding="30" Width="200">
-                                <StackPanel>
-                                    <TextBlock Text="Printer Settings" FontSize="16" FontWeight="Bold" Foreground="#2D2D2D" TextAlignment="Center"/>
-                                    <TextBlock Text="Configure and test receipt printing" FontSize="12" Foreground="#999" TextAlignment="Center" Margin="0,5,0,0"/>
+                            <Button Command="{Binding OpenCompanySettingsCommand}" Classes="tile" Margin="0,0,12,12" Width="240" Height="100">
+                                <StackPanel Orientation="Horizontal" Spacing="14">
+                                    <Border Width="44" Height="44" CornerRadius="12" Background="{DynamicResource Surface2Brush}">
+                                        <Path Classes="icon" Data="{StaticResource IconBuilding}" Stroke="{DynamicResource CyanBrush}"/>
+                                    </Border>
+                                    <StackPanel VerticalAlignment="Center" MaxWidth="150">
+                                        <TextBlock Text="Company Settings" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                                        <TextBlock Text="Business identity on receipts" Classes="muted" FontSize="12" TextWrapping="Wrap"/>
+                                    </StackPanel>
                                 </StackPanel>
-                            </Border>
-                        </Button>
-                    </WrapPanel>
+                            </Button>
+
+                            <Button Command="{Binding OpenPrinterSettingsCommand}" Classes="tile" Margin="0,0,12,12" Width="240" Height="100">
+                                <StackPanel Orientation="Horizontal" Spacing="14">
+                                    <Border Width="44" Height="44" CornerRadius="12" Background="{DynamicResource Surface2Brush}">
+                                        <Path Classes="icon" Data="{StaticResource IconPrinter}" Stroke="{DynamicResource CyanBrush}"/>
+                                    </Border>
+                                    <StackPanel VerticalAlignment="Center" MaxWidth="150">
+                                        <TextBlock Text="Printer Settings" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                                        <TextBlock Text="Configure and test receipt printing" Classes="muted" FontSize="12" TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Button>
+                        </WrapPanel>
+                    </StackPanel>
                 </StackPanel>
             </ScrollViewer>
 
-            <Border Grid.Row="1" Background="#F0F0F0" BorderThickness="0,1,0,0" BorderBrush="#E0E0E0" Padding="20,0">
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock Text="{Binding StatusMessage, StringFormat='Status: {0}'}" Foreground="#666" FontSize="12"/>
-                    <Separator Width="1" Background="#D0D0D0" Margin="15,0"/>
-                    <TextBlock Text="{Binding CurrentDateTime, StringFormat='{}{0:g}'}" Foreground="#666" FontSize="12"/>
+            <!-- Status bar -->
+            <Border Grid.Row="1" Classes="panel" BorderThickness="0,1,0,0" Padding="24,0">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="14">
+                    <TextBlock Text="{Binding StatusMessage, StringFormat='Status: {0}'}" Classes="muted" FontSize="12"/>
+                    <Border Width="1" Height="14" Background="{DynamicResource LineBrush}"/>
+                    <TextBlock Text="{Binding CurrentDateTime, StringFormat='{}{0:g}'}" Classes="muted" FontSize="12"/>
                 </StackPanel>
             </Border>
         </Grid>
