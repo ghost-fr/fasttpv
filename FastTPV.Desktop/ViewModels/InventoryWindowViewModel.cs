@@ -17,13 +17,6 @@ public class InventoryWindowViewModel : ViewModelBase
 
     public ObservableCollection<Article> Articles { get; } = new();
     public ObservableCollection<Article> FilteredArticles { get; } = new();
-
-    /// <summary>
-    /// Category names for the Category field's autocomplete, sourced from the
-    /// Categories table (see CategoryService) rather than just whatever strings
-    /// happen to already be on Articles — so a brand-new category someone starts
-    /// typing shows up for the next product too, not just after a page reload.
-    /// </summary>
     public ObservableCollection<string> CategoryOptions { get; } = new();
 
     private Article? _selectedArticle;
@@ -41,11 +34,7 @@ public class InventoryWindowViewModel : ViewModelBase
     public string SearchText
     {
         get => _searchText;
-        set
-        {
-            this.RaiseAndSetIfChanged(ref _searchText, value);
-            ApplyFilter();
-        }
+        set { this.RaiseAndSetIfChanged(ref _searchText, value); ApplyFilter(); }
     }
 
     private string _statusMessage = string.Empty;
@@ -55,7 +44,6 @@ public class InventoryWindowViewModel : ViewModelBase
         set => this.RaiseAndSetIfChanged(ref _statusMessage, value);
     }
 
-    // Editor fields (bound to the add/edit form)
     private int _editId;
     private string _editCode = string.Empty;
     public string EditCode { get => _editCode; set => this.RaiseAndSetIfChanged(ref _editCode, value); }
@@ -78,11 +66,10 @@ public class InventoryWindowViewModel : ViewModelBase
     private int _editMinimumStock;
     public int EditMinimumStock { get => _editMinimumStock; set => this.RaiseAndSetIfChanged(ref _editMinimumStock, value); }
 
-    // --- Manual stock-adjustment panel ---
-    // Separate from the Save/edit form above: this goes through
-    // StockMovementService.AdjustStockWithReasonAsync so every manual change to
-    // StockLevel is both applied atomically and logged with who/why, rather than
-    // silently overwritten by a Save of the raw EditStockLevel number.
+    private string _editPricingMode = "Fixed";
+    public string EditPricingMode { get => _editPricingMode; set => this.RaiseAndSetIfChanged(ref _editPricingMode, value); }
+    public string[] PricingModeOptions { get; } = new[] { "Fixed", "OpenPrice" };
+
     private int _adjustQuantityDelta;
     public int AdjustQuantityDelta
     {
@@ -129,11 +116,7 @@ public class InventoryWindowViewModel : ViewModelBase
             CategoryOptions.Clear();
             foreach (var name in names) CategoryOptions.Add(name);
         }
-        catch (Exception)
-        {
-            // Non-critical — the Category field still works as a plain text box
-            // if this fails, it just won't offer autocomplete suggestions.
-        }
+        catch (Exception) { }
     }
 
     private async Task LoadArticlesAsync()
@@ -161,7 +144,6 @@ public class InventoryWindowViewModel : ViewModelBase
                 a.Name.Contains(SearchText, StringComparison.OrdinalIgnoreCase) ||
                 a.Code.Contains(SearchText, StringComparison.OrdinalIgnoreCase) ||
                 a.Category.Contains(SearchText, StringComparison.OrdinalIgnoreCase));
-
         foreach (var a in query) FilteredArticles.Add(a);
     }
 
@@ -175,9 +157,7 @@ public class InventoryWindowViewModel : ViewModelBase
         EditCostPrice = article?.CostPrice ?? 0m;
         EditStockLevel = article?.StockLevel ?? 0;
         EditMinimumStock = article?.MinimumStock ?? 0;
-
-        // A different article is now selected (or none) — the adjustment panel's
-        // pending entry no longer applies to whatever is now in EditStockLevel.
+        EditPricingMode = string.IsNullOrWhiteSpace(article?.PricingMode) ? "Fixed" : article!.PricingMode;
         AdjustQuantityDelta = 0;
         AdjustReason = string.Empty;
     }
@@ -192,6 +172,7 @@ public class InventoryWindowViewModel : ViewModelBase
 
         try
         {
+            var mode = string.IsNullOrWhiteSpace(EditPricingMode) ? "Fixed" : EditPricingMode;
             if (_editId == 0)
             {
                 var article = new Article
@@ -203,9 +184,9 @@ public class InventoryWindowViewModel : ViewModelBase
                     CostPrice = EditCostPrice,
                     StockLevel = EditStockLevel,
                     MinimumStock = EditMinimumStock,
+                    PricingMode = mode,
                     IsActive = true
                 };
-
                 var newId = await _articleService.AddAsync(article);
                 StatusMessage = newId > 0 ? $"Added {article.Name}." : "Could not add product.";
             }
@@ -221,16 +202,13 @@ public class InventoryWindowViewModel : ViewModelBase
                     CostPrice = EditCostPrice,
                     StockLevel = EditStockLevel,
                     MinimumStock = EditMinimumStock,
+                    PricingMode = mode,
                     IsActive = true
                 };
-
                 var ok = await _articleService.UpdateAsync(article);
                 StatusMessage = ok ? $"Updated {article.Name}." : "Could not update product.";
             }
 
-            // Links the free-text Category field to the Categories table: whatever
-            // name was just typed becomes (or stays) a real row there, so it shows
-            // up in the autocomplete for every subsequent product, not just this one.
             if (!string.IsNullOrWhiteSpace(EditCategory))
             {
                 await AppRuntime.Categories.EnsureExistsAsync(EditCategory.Trim());
@@ -250,7 +228,6 @@ public class InventoryWindowViewModel : ViewModelBase
     private async Task DeleteAsync()
     {
         if (SelectedArticle == null) return;
-
         try
         {
             var ok = await _articleService.DeleteAsync(SelectedArticle.Id);
@@ -264,46 +241,31 @@ public class InventoryWindowViewModel : ViewModelBase
         }
     }
 
-    /// <summary>
-    /// Applies the +/- quantity in AdjustQuantityDelta to the selected article via
-    /// StockMovementService (atomic stock change + logged reason), then refreshes
-    /// the grid and clears the panel. Requires a non-blank reason so every manual
-    /// adjustment in the audit trail is actually explainable later.
-    /// </summary>
     private async Task AdjustStockAsync()
     {
         if (SelectedArticle == null || AdjustQuantityDelta == 0) return;
-
         if (string.IsNullOrWhiteSpace(AdjustReason))
         {
             StatusMessage = "Enter a reason for the stock adjustment.";
             return;
         }
-
         try
         {
             var article = SelectedArticle;
             var userId = AppRuntime.Session.CurrentUser?.UserId ?? 0;
-
             var ok = await AppRuntime.StockMovements.AdjustStockWithReasonAsync(
                 article.Id, AdjustQuantityDelta, AdjustReason.Trim(), userId);
-
             if (!ok)
             {
-                StatusMessage = $"Could not adjust stock for {article.Name} — the change would take it below zero, or the save failed.";
+                StatusMessage = $"Could not adjust stock for {article.Name}.";
                 return;
             }
-
             StatusMessage = AdjustQuantityDelta > 0
                 ? $"Added {AdjustQuantityDelta} to {article.Name}'s stock ({AdjustReason.Trim()})."
                 : $"Removed {-AdjustQuantityDelta} from {article.Name}'s stock ({AdjustReason.Trim()}).";
-
             AdjustQuantityDelta = 0;
             AdjustReason = string.Empty;
-
             await LoadArticlesAsync();
-            // Re-select the same article (by Id, since LoadArticlesAsync replaced the
-            // collection's instances) so the editor panel keeps showing its new numbers.
             SelectedArticle = Articles.FirstOrDefault(a => a.Id == article.Id);
         }
         catch (Exception ex)
