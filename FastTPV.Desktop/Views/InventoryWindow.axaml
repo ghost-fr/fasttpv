@@ -13,6 +13,12 @@
             <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
                 <TextBlock Text="Inventory" Classes="h1" FontSize="20" VerticalAlignment="Center"/>
                 <Button Content="Refresh" Classes="btn" Command="{Binding RefreshCommand}"/>
+                <Button Content="Export Excel" Classes="btn" Click="ExportClick"
+                        ToolTip.Tip="Export all products (active and inactive) to an .xlsx file"
+                        IsEnabled="{Binding !IsBusy}"/>
+                <Button Content="Import Excel" Classes="primary" Click="ImportClick"
+                        ToolTip.Tip="Import products from .xlsx (upsert by Code; stock changes are audited)"
+                        IsEnabled="{Binding !IsBusy}"/>
             </StackPanel>
         </Border>
 
