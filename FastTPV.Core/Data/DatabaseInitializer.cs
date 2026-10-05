@@ -125,13 +125,19 @@ public static class DatabaseInitializer
                 IsActive BOOLEAN NOT NULL DEFAULT TRUE,
                 CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
             )",
+            // Matches StockMovementService / ArticleExcelService (not the older QuantityDelta-only shape).
             @"CREATE TABLE IF NOT EXISTS StockMovements (
                 Id INT AUTO_INCREMENT PRIMARY KEY,
                 ArticleId INT NOT NULL,
-                QuantityDelta INT NOT NULL,
+                ArticleCode VARCHAR(50) NOT NULL DEFAULT '',
+                ArticleName VARCHAR(255) NOT NULL DEFAULT '',
+                Quantity INT NOT NULL,
+                MovementType VARCHAR(20) NOT NULL DEFAULT 'Adjustment',
                 Reason VARCHAR(255),
+                UserId INT NULL,
+                Reference VARCHAR(100) NOT NULL DEFAULT '',
                 CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-                CreatedByUserId INT NULL
+                INDEX(ArticleId)
             )",
             @"CREATE TABLE IF NOT EXISTS Payments (
                 Id INT AUTO_INCREMENT PRIMARY KEY,
@@ -161,6 +167,14 @@ public static class DatabaseInitializer
         await TryAlterAsync(db, "ALTER TABLE Users ADD COLUMN FailedLoginAttempts INT NOT NULL DEFAULT 0");
         await TryAlterAsync(db, "ALTER TABLE Users ADD COLUMN LockedUntil DATETIME NULL");
         await TryAlterAsync(db, "ALTER TABLE Articles ADD COLUMN PricingMode VARCHAR(20) NOT NULL DEFAULT 'Fixed'");
+
+        // StockMovements: older installs may only have QuantityDelta / CreatedByUserId.
+        await TryAlterAsync(db, "ALTER TABLE StockMovements ADD COLUMN ArticleCode VARCHAR(50) NOT NULL DEFAULT ''");
+        await TryAlterAsync(db, "ALTER TABLE StockMovements ADD COLUMN ArticleName VARCHAR(255) NOT NULL DEFAULT ''");
+        await TryAlterAsync(db, "ALTER TABLE StockMovements ADD COLUMN Quantity INT NOT NULL DEFAULT 0");
+        await TryAlterAsync(db, "ALTER TABLE StockMovements ADD COLUMN MovementType VARCHAR(20) NOT NULL DEFAULT 'Adjustment'");
+        await TryAlterAsync(db, "ALTER TABLE StockMovements ADD COLUMN UserId INT NULL");
+        await TryAlterAsync(db, "ALTER TABLE StockMovements ADD COLUMN Reference VARCHAR(100) NOT NULL DEFAULT ''");
 
         Logger.Information("Database schema verified/created");
     }
