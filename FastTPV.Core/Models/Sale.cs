@@ -27,6 +27,15 @@ public class Sale
     public int SalesmanId { get; set; }
     public DateTime CreatedAt { get; set; }
 
+    /// <summary>Idempotency key from the client (unique when set).</summary>
+    public string? ClientRequestId { get; set; }
+    public int? CashSessionId { get; set; }
+    public int? CreatedByUserId { get; set; }
+    public string FiscalStatus { get; set; } = "None";
+    public string? FiscalReference { get; set; }
+    /// <summary>Loyalty points awarded by this sale (0 when loyalty is off or no customer).</summary>
+    public int LoyaltyPointsEarned { get; set; }
+
     public List<SaleLineItem> LineItems { get; set; } = new();
 }
 
@@ -38,6 +47,7 @@ public class SaleLineItem
     public int Id { get; set; }
     public int SaleId { get; set; }
     public int ArticleId { get; set; }
+    public string ArticleCode { get; set; } = string.Empty;
     public string ArticleName { get; set; } = string.Empty;
     public int Quantity { get; set; }
     public decimal UnitPrice { get; set; }

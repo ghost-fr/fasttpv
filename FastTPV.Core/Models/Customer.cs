@@ -16,6 +16,12 @@ public class Customer
     public string TaxId { get; set; } = string.Empty;
     public decimal CreditLimit { get; set; }
     public decimal CurrentDebt { get; set; }
+
+    /// <summary>Optional loyalty module: points earned on completed sales (0 when the module is off).</summary>
+    public int LoyaltyPoints { get; set; }
+
+    /// <summary>Credit still available on account (never negative). 0 when no credit limit is set.</summary>
+    public decimal AvailableCredit => Math.Max(0m, CreditLimit - CurrentDebt);
     public bool IsActive { get; set; } = true;
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
