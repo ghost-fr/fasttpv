@@ -18,6 +18,8 @@ public enum CheckoutStatus
     InsufficientStock,
     /// <summary>Tendered amount does not cover the total, or change cannot be given from the cash tendered.</summary>
     PaymentInvalid,
+    /// <summary>The "Account" tender would push the customer's debt over their credit limit. Nothing was written.</summary>
+    CreditLimitExceeded,
     /// <summary>The ticket itself is invalid (empty, zero open price, inactive article...). See Message.</summary>
     Invalid,
     /// <summary>Unexpected database failure. Nothing was written. Safe to retry with the same RequestId.</summary>
@@ -43,6 +45,9 @@ public sealed class CheckoutRequest
 
     /// <summary>Set ONLY after a manager approved selling below zero stock.</summary>
     public bool AllowNegativeStock { get; init; }
+
+    /// <summary>Loyalty points awarded per 1.00 of ticket total (rounded down). 0 = loyalty module off.</summary>
+    public decimal LoyaltyPointsPerCurrencyUnit { get; init; }
 }
 
 public sealed class CheckoutResult
@@ -50,6 +55,11 @@ public sealed class CheckoutResult
     public CheckoutStatus Status { get; init; }
     public Sale? Sale { get; init; }
     public decimal Change { get; init; }
+
+    /// <summary>Loyalty points credited to the attached customer by this sale (0 if none).</summary>
+    public int LoyaltyPointsEarned { get; init; }
+    /// <summary>Customer's total points after this sale (only meaningful when LoyaltyPointsEarned > 0 or a customer was attached).</summary>
+    public int LoyaltyBalance { get; init; }
     public string Message { get; init; } = string.Empty;
     public IReadOnlyList<StockShortage> Shortages { get; init; } = Array.Empty<StockShortage>();
 
