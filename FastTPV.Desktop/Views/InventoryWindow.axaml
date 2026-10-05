@@ -14,11 +14,9 @@
                 <TextBlock Text="Inventory" Classes="h1" FontSize="20" VerticalAlignment="Center"/>
                 <Button Content="Refresh" Classes="btn" Command="{Binding RefreshCommand}"/>
                 <Button Content="Export Excel" Classes="btn" Click="ExportClick"
-                        ToolTip.Tip="Export all products (active and inactive) to an .xlsx file"
-                        IsEnabled="{Binding !IsBusy}"/>
-                <Button Content="Import Excel" Classes="primary" Click="ImportClick"
-                        ToolTip.Tip="Import products from .xlsx (upsert by Code; stock changes are audited)"
-                        IsEnabled="{Binding !IsBusy}"/>
+                        ToolTip.Tip="Export all products (active and inactive) to an .xlsx file"/>
+                <Button Content="Import Excel" Classes="cash" Click="ImportClick"
+                        ToolTip.Tip="Import products from .xlsx (upsert by Code; stock changes are audited)"/>
             </StackPanel>
         </Border>
 
@@ -45,6 +43,18 @@
 
             <ScrollViewer Grid.Column="1">
                 <StackPanel Spacing="14">
+                    <Border Classes="card" Padding="20">
+                        <StackPanel Spacing="10">
+                            <TextBlock Text="Excel import / export" Classes="h2"/>
+                            <TextBlock Text="Export the full catalogue, or import an .xlsx to add/update products by Code. Stock changes from import are audited."
+                                       Classes="muted" FontSize="12" TextWrapping="Wrap"/>
+                            <StackPanel Orientation="Horizontal" Spacing="10">
+                                <Button Content="Export Excel" Classes="btn" Click="ExportClick" MinWidth="120"/>
+                                <Button Content="Import Excel" Classes="cash" Click="ImportClick" MinWidth="120"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
                     <Border Classes="card" Padding="20">
                         <StackPanel Spacing="8">
                             <TextBlock Text="Add / Edit Product" Classes="h2"/>
