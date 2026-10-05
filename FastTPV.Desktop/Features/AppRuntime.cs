@@ -33,6 +33,7 @@ public static class AppRuntime
     public static StockMovementService StockMovements { get; private set; } = null!;
     public static PaymentService Payments { get; private set; } = null!;
     public static CategoryService Categories { get; private set; } = null!;
+    public static ArticleExcelService ArticleExcel { get; private set; } = null!;
 
     /// <summary>
     /// Full path to appsettings.json, captured at startup so printer settings
@@ -72,6 +73,7 @@ public static class AppRuntime
         StockMovements = new StockMovementService(Database, Articles);
         Payments = new PaymentService(Database);
         Categories = new CategoryService(Database);
+        ArticleExcel = new ArticleExcelService(Articles, StockMovements, Categories);
 
         Ready = BootstrapAsync(settings.AutoMigrate);
     }
