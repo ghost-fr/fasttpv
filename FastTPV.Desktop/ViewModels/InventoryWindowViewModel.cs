@@ -4,6 +4,7 @@ using FastTPV.Desktop.Features;
 using ReactiveUI;
 using System;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
 using System.Reactive;
 using System.Reactive.Linq;
@@ -42,6 +43,13 @@ public class InventoryWindowViewModel : ViewModelBase
     {
         get => _statusMessage;
         set => this.RaiseAndSetIfChanged(ref _statusMessage, value);
+    }
+
+    private bool _isBusy;
+    public bool IsBusy
+    {
+        get => _isBusy;
+        set => this.RaiseAndSetIfChanged(ref _isBusy, value);
     }
 
     private int _editId;
@@ -271,6 +279,68 @@ public class InventoryWindowViewModel : ViewModelBase
         catch (Exception ex)
         {
             StatusMessage = $"Stock adjustment failed: {ex.Message}";
+        }
+    }
+
+    /// <summary>
+    /// Called from InventoryWindow code-behind after the user picks a save path.
+    /// Exports the full catalogue (active + inactive) via ArticleExcelService.
+    /// </summary>
+    public async Task ExportToAsync(string path)
+    {
+        if (IsBusy) return;
+        IsBusy = true;
+        try
+        {
+            StatusMessage = "Exporting products to Excel...";
+            var count = await AppRuntime.ArticleExcel.ExportAsync(path);
+            StatusMessage = $"Exported {count} product(s) to {Path.GetFileName(path)}.";
+            await AppRuntime.Audit.WriteAsync(
+                AppRuntime.Session.CurrentUser,
+                "Export",
+                "Articles",
+                $"Excel export: {count} rows -> {path}");
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Export failed: {ex.Message}";
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    /// <summary>
+    /// Called from InventoryWindow code-behind after the user picks an .xlsx file.
+    /// Upserts by Code; stock differences are recorded as stock movements.
+    /// </summary>
+    public async Task ImportFromAsync(Stream stream, string fileName)
+    {
+        if (IsBusy) return;
+        IsBusy = true;
+        try
+        {
+            StatusMessage = $"Importing {fileName}...";
+            var userId = AppRuntime.Session.CurrentUser?.UserId ?? 0;
+            var summary = await AppRuntime.ArticleExcel.ImportAsync(stream, userId);
+            StatusMessage = summary.ToText();
+            await AppRuntime.Audit.WriteAsync(
+                AppRuntime.Session.CurrentUser,
+                "Import",
+                "Articles",
+                $"Excel import ({fileName}): added={summary.Added} updated={summary.Updated} unchanged={summary.Unchanged} skipped={summary.Skipped}" +
+                (summary.FatalError is null ? "" : $" fatal={summary.FatalError}"));
+            await LoadArticlesAsync();
+            await LoadCategoryOptionsAsync();
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Import failed: {ex.Message}";
+        }
+        finally
+        {
+            IsBusy = false;
         }
     }
 }
